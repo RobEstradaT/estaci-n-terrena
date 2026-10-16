@@ -1,0 +1,41 @@
+:root {
+  --bg-void: #0a0f1a;
+  --bg-panel: #111a2b;
+  --line: #223052;
+  --line-soft: #1a2540;
+  --text-primary: #e7ecf5;
+  --text-muted: #7d8bab;
+  --accent-signal: #4fd1c5;
+  --status-nominal: #52d17c;
+  --status-warning: #f5b942;
+  --status-critical: #f2545b;
+
+  --font-display: "Space Grotesk", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background:
+    linear-gradient(var(--line-soft) 1px, transparent 1px) 0 0 / 100% 32px,
+    var(--bg-void);
+  color: var(--text-primary);
+  font-family: var(--font-display);
+  -webkit-font-smoothing: antialiased;
+}
+
+button {
+  font-family: inherit;
+}

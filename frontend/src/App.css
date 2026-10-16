@@ -1,0 +1,208 @@
+.app {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 28px 24px 64px;
+}
+
+.label {
+  display: block;
+  font-size: 12px;
+  color: var(--text-muted);
+  letter-spacing: 0.02em;
+  margin-bottom: 6px;
+}
+
+.mono {
+  font-family: var(--font-mono);
+}
+
+.unit {
+  font-size: 0.5em;
+  color: var(--text-muted);
+  margin-left: 6px;
+  font-weight: 500;
+}
+
+/* ---------- Header ---------- */
+
+.mission-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 16px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 24px;
+}
+
+.mission-header__eyebrow {
+  display: block;
+  font-size: 13px;
+  color: var(--accent-signal);
+  font-family: var(--font-mono);
+  margin-bottom: 4px;
+}
+
+.mission-header__title h1 {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 600;
+}
+
+.mission-header__stats {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+
+.mission-header__stat {
+  text-align: right;
+}
+
+.mission-header__stat .value {
+  font-size: 18px;
+}
+
+.connection-pill {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  border-radius: 2px;
+  color: var(--text-muted);
+}
+
+.connection-pill__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--text-muted);
+}
+
+.connection-pill--open {
+  color: var(--status-nominal);
+  border-color: var(--status-nominal);
+}
+.connection-pill--open .connection-pill__dot {
+  background: var(--status-nominal);
+  box-shadow: 0 0 8px var(--status-nominal);
+}
+
+.connection-pill--closed {
+  color: var(--status-critical);
+  border-color: var(--status-critical);
+}
+.connection-pill--closed .connection-pill__dot {
+  background: var(--status-critical);
+}
+
+/* ---------- Altitude hero ---------- */
+
+.altitude-hero {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 24px;
+  background: var(--bg-panel);
+  border: 1px solid var(--line);
+  border-top: 2px solid var(--accent-signal);
+  border-radius: 2px;
+  padding: 28px 32px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.altitude-hero__value {
+  font-size: 64px;
+  font-weight: 600;
+  line-height: 1;
+  color: var(--text-primary);
+}
+
+.altitude-hero__velocity {
+  display: block;
+  margin-top: 10px;
+  color: var(--text-muted);
+  font-size: 14px;
+}
+
+.altitude-hero__phase {
+  text-align: right;
+  padding-left: 24px;
+  border-left: 1px solid var(--line);
+}
+
+.altitude-hero__phase .value {
+  font-family: var(--font-mono);
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.altitude-hero__phase--signal .value {
+  color: var(--accent-signal);
+}
+.altitude-hero__phase--warning .value {
+  color: var(--status-warning);
+}
+.altitude-hero__phase--nominal .value {
+  color: var(--status-nominal);
+}
+.altitude-hero__phase--muted .value {
+  color: var(--text-muted);
+}
+
+/* ---------- Instrument grid ---------- */
+
+.instrument-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.instrument-card {
+  background: var(--bg-panel);
+  border: 1px solid var(--line);
+  border-radius: 2px;
+  padding: 16px;
+}
+
+.instrument-card--warning {
+  border-color: var(--status-warning);
+}
+
+.instrument-card__value {
+  font-size: 22px;
+  font-weight: 500;
+}
+
+/* ---------- Charts ---------- */
+
+.telemetry-charts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 12px;
+}
+
+.chart-panel {
+  background: var(--bg-panel);
+  border: 1px solid var(--line);
+  border-radius: 2px;
+  padding: 16px 16px 4px;
+}
+
+@media (max-width: 720px) {
+  .instrument-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .telemetry-charts {
+    grid-template-columns: 1fr;
+  }
+  .altitude-hero__value {
+    font-size: 44px;
+  }
+}
