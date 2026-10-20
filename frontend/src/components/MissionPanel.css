@@ -1,0 +1,147 @@
+/* Panel de misiones (Incremento 6). Usa los tokens de index.css. */
+
+.mission-panel {
+  background: var(--bg-panel);
+  border: 1px solid var(--line);
+  border-radius: 2px;
+  padding: 16px 20px;
+  margin-bottom: 24px;
+}
+
+.mission-panel__bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.mission-panel__recording,
+.mission-panel__idle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 15px;
+}
+
+.mission-panel__idle {
+  color: var(--text-muted);
+}
+
+.mission-panel__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--status-critical);
+  box-shadow: 0 0 8px var(--status-critical);
+}
+
+.mission-panel__count {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.mission-panel__new {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.mission-input {
+  min-width: 220px;
+  padding: 8px 12px;
+  background: var(--bg-void);
+  color: var(--text-primary);
+  border: 1px solid var(--line);
+  border-radius: 2px;
+  font-family: var(--font-display);
+  font-size: 14px;
+}
+
+.mission-input::placeholder {
+  color: var(--text-muted);
+}
+
+.mission-btn {
+  padding: 8px 14px;
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: 2px;
+  color: var(--text-primary);
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.mission-btn--start {
+  border-color: var(--accent-signal);
+  color: var(--accent-signal);
+}
+
+.mission-btn--stop {
+  border-color: var(--status-critical);
+  color: var(--status-critical);
+}
+
+.mission-btn:hover:not(:disabled) {
+  background: var(--line-soft);
+}
+
+.mission-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.mission-input:focus-visible,
+.mission-btn:focus-visible,
+.mission-list__export:focus-visible {
+  outline: 2px solid var(--accent-signal);
+  outline-offset: 2px;
+}
+
+.mission-panel__error {
+  margin: 12px 0 0;
+  font-size: 14px;
+  color: var(--status-critical);
+}
+
+.mission-list {
+  list-style: none;
+  margin: 16px 0 0;
+  padding: 0;
+  border-top: 1px solid var(--line-soft);
+}
+
+.mission-list__item {
+  display: grid;
+  grid-template-columns: minmax(120px, 1fr) auto auto auto;
+  align-items: baseline;
+  gap: 20px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--line-soft);
+  font-size: 14px;
+}
+
+.mission-list__meta {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.mission-list__export {
+  color: var(--accent-signal);
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+}
+
+.mission-list__export:hover {
+  border-bottom-color: var(--accent-signal);
+}
+
+@media (max-width: 720px) {
+  .mission-list__item {
+    grid-template-columns: 1fr auto;
+    gap: 4px 16px;
+  }
+  .mission-list__name {
+    grid-column: 1 / -1;
+  }
+}
