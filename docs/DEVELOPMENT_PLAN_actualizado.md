@@ -112,6 +112,13 @@ virtual `loop://` de pyserial, y puerto inexistente sin tumbar el
 proceso. No hay ESP32 USB conectado en esta máquina (solo COM Bluetooth),
 así que falta la prueba end-to-end con hardware real.
 
+Verificado además con un puerto serial virtual del sistema operativo (no
+`loop://`): lectura, descarte de tramas corruptas y con `nan`, guardado de
+misión, CSV y recuperación tras desconexión del puerto. Para la prueba con la
+ESP32 física se añadió `firmware/esp32_telemetria_prueba/` (generador de
+tramas de prueba) y `docs/PRUEBA_SERIAL.md` (pruebas P1-P10 con criterios de
+aceptación). Este incremento pasa a COMPLETADO al registrar esos resultados.
+
 El simulador sigue siendo el predeterminado y no cambia su comportamiento.
 
 Objetivo:
@@ -122,7 +129,16 @@ El formato exacto de la trama deberá confirmarse antes de implementar el parser
 
 ## Incremento 6 — Persistencia
 
-Estado: PENDIENTE
+Estado: COMPLETADO
+
+SQLite organizado por misión (`database.py`): una misión activa a la vez
+(índice único parcial), inserción solo mientras la misión está activa, cierre
+de misiones huérfanas al arrancar. Exportación a CSV por bloques
+(`exporter.py`). API de misiones en `main.py`. En el frontend, `MissionPanel`
++ `useMissions` permiten iniciar/finalizar misiones y descargar el CSV.
+Documentación en `PERSISTENCE.md`; pruebas en `backend/tests/test_database.py`.
+
+Pendiente (Incremento 7): normalizar `sequence` y `mission_time_s` por misión.
 
 Objetivo:
 
