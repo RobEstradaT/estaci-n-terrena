@@ -5,6 +5,7 @@ Incrementos cubiertos por este archivo:
 - Incremento 1: fuente simulada + procesamiento inicial.
 - Incremento 2: FastAPI + WebSocket en tiempo real.
 - Incremento 5: selección de fuente Simulator | SerialESP32.
+- Incremento 6: misiones, guardado en SQLite y exportación a CSV.
 
 Ejecutar con:
     uvicorn app.main:app --reload --port 8000
@@ -13,10 +14,17 @@ Fuente activa (sin comentar código):
     TELEMETRY_SOURCE=simulator   (predeterminado)
     TELEMETRY_SOURCE=serial SERIAL_PORT=COM3 SERIAL_BAUDRATE=115200
 
+Base de datos (opcional):
+    DATABASE_PATH=ruta/al/archivo.db   (predeterminado: backend/data/cansat.db)
+
 Endpoints:
-- WS   /ws/telemetry        -> stream de telemetría procesada en tiempo real
-- GET  /api/status          -> estado general del sistema y de la fuente
-- GET  /api/telemetry/latest -> última lectura procesada (o null si no hay)
+- WS   /ws/telemetry                    -> stream de telemetría procesada en tiempo real
+- GET  /api/status                      -> estado general del sistema y de la fuente
+- GET  /api/telemetry/latest            -> última lectura procesada (o null si no hay)
+- GET  /api/missions                    -> misiones guardadas (la más reciente primero)
+- POST /api/missions                    -> inicia una misión (empieza a guardar)
+- POST /api/missions/{id}/end           -> finaliza la misión (deja de guardar)
+- GET  /api/missions/{id}/export.csv    -> descarga los datos de la misión en CSV
 """
 
 import asyncio
@@ -24,10 +32,19 @@ import logging
 import os
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
+from pydantic import BaseModel, Field
 
 from .connection_manager import ConnectionManager
+from .database import (
+    DEFAULT_DB_PATH,
+    Database,
+    MissionNotFoundError,
+    MissionStateError,
+)
+from .exporter import csv_chunks, export_filename
 from .telemetry.processor import process
 from .telemetry.serial_esp32 import SerialESP32
 from .telemetry.simulator import Simulator
@@ -40,6 +57,9 @@ TELEMETRY_INTERVAL_S = 1.0
 
 manager = ConnectionManager()
 latest_reading: dict | None = None
+
+# Misión que está grabando ahora (None = se muestra en vivo pero no se guarda).
+active_mission_id: int | None = None
 
 
 def create_source() -> TelemetrySource:
@@ -69,12 +89,14 @@ def create_source() -> TelemetrySource:
 
 
 source = create_source()
+db = Database(os.environ.get("DATABASE_PATH") or DEFAULT_DB_PATH)
 
 
 async def telemetry_loop() -> None:
     """
-    Tarea de fondo: lee de la fuente activa, procesa cada lectura y la
-    difunde a todos los clientes WebSocket conectados.
+    Tarea de fondo: lee de la fuente activa, procesa cada lectura, la
+    difunde a todos los clientes WebSocket conectados y, si hay una misión
+    activa, la guarda en SQLite.
 
     Esta función no sabe (ni le importa) si `source` es un Simulator o
     un SerialESP32: solo depende de la interfaz TelemetrySource
@@ -90,6 +112,19 @@ async def telemetry_loop() -> None:
 
             if manager.client_count > 0:
                 await manager.broadcast(latest_reading)
+
+            # Guardar después de difundir: un fallo de disco no debe frenar
+            # la vista en vivo.
+            mission_id = active_mission_id
+            if mission_id is not None:
+                try:
+                    await asyncio.to_thread(
+                        db.insert_telemetry, mission_id, latest_reading
+                    )
+                except Exception:
+                    logging.exception(
+                        "no se pudo guardar la lectura (misión %s)", mission_id
+                    )
         except Exception:
             logging.exception("error en el ciclo de telemetría; se reintenta")
 
@@ -98,6 +133,13 @@ async def telemetry_loop() -> None:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    closed = await asyncio.to_thread(db.close_orphan_missions)
+    if closed:
+        logging.warning(
+            "se cerraron %d misión(es) que habían quedado activas por un "
+            "apagado inesperado",
+            closed,
+        )
     task = asyncio.create_task(telemetry_loop())
     yield
     task.cancel()
@@ -125,12 +167,72 @@ async def get_status():
         "source_connected": source.is_connected(),
         "connected_clients": manager.client_count,
         "telemetry_interval_s": TELEMETRY_INTERVAL_S,
+        "active_mission_id": active_mission_id,
     }
 
 
 @app.get("/api/telemetry/latest")
 async def get_latest_telemetry():
     return latest_reading
+
+
+# ---------------------------------------------------------------------------
+# Misiones (Incremento 6)
+# ---------------------------------------------------------------------------
+
+
+class MissionCreate(BaseModel):
+    name: str = Field(min_length=1, max_length=100)
+    notes: str | None = Field(default=None, max_length=500)
+
+
+@app.get("/api/missions")
+async def list_missions():
+    return await asyncio.to_thread(db.list_missions)
+
+
+@app.post("/api/missions", status_code=201)
+async def create_mission(body: MissionCreate):
+    global active_mission_id
+    name = body.name.strip()
+    if not name:
+        raise HTTPException(
+            status_code=422, detail="El nombre de la misión no puede estar vacío."
+        )
+    try:
+        mission = await asyncio.to_thread(db.create_mission, name, body.notes)
+    except MissionStateError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    active_mission_id = mission["id"]
+    return mission
+
+
+@app.post("/api/missions/{mission_id}/end")
+async def end_mission(mission_id: int):
+    global active_mission_id
+    try:
+        mission = await asyncio.to_thread(db.end_mission, mission_id)
+    except MissionNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except MissionStateError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    if active_mission_id == mission_id:
+        active_mission_id = None
+    return mission
+
+
+@app.get("/api/missions/{mission_id}/export.csv")
+async def export_mission_csv(mission_id: int):
+    try:
+        mission = await asyncio.to_thread(db.get_mission, mission_id)
+    except MissionNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    filename = export_filename(mission)
+    return StreamingResponse(
+        csv_chunks(db, mission_id),
+        media_type="text/csv; charset=utf-8",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
 
 
 @app.websocket("/ws/telemetry")
