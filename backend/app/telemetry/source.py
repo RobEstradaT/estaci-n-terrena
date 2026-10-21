@@ -16,6 +16,11 @@ from .schema import TelemetryReading
 class TelemetrySource(ABC):
     """Interfaz común para cualquier origen de telemetría."""
 
+    # Segundos que el ciclo del backend espera entre lecturas. Las fuentes
+    # cuyo read() ya bloquea esperando datos reales (SerialESP32) lo dejan
+    # en 0 para no acumular retraso; el Simulator lo usa para marcar su ritmo.
+    poll_interval_s: float = 0.0
+
     @abstractmethod
     async def read(self) -> TelemetryReading:
         """

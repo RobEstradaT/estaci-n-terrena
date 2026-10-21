@@ -52,8 +52,13 @@ from .telemetry.source import TelemetrySource
 
 logging.basicConfig(level=logging.INFO)
 
-# Intervalo entre lecturas de telemetría (segundos).
+# Intervalo entre lecturas del Simulator (segundos). Con SerialESP32 no se
+# usa para esperar: cada trama se procesa en cuanto llega.
 TELEMETRY_INTERVAL_S = 1.0
+
+# Espera tras un error inesperado en el ciclo, para no entrar en un bucle
+# a toda velocidad si algo falla de forma repetida.
+ERROR_RETRY_DELAY_S = 1.0
 
 manager = ConnectionManager()
 latest_reading: dict | None = None
@@ -100,7 +105,9 @@ async def telemetry_loop() -> None:
 
     Esta función no sabe (ni le importa) si `source` es un Simulator o
     un SerialESP32: solo depende de la interfaz TelemetrySource
-    (ver telemetry/source.py).
+    (ver telemetry/source.py). El ritmo lo marca `source.poll_interval_s`:
+    el Simulator pide esperar 1 s; SerialESP32 pide 0 porque su read()
+    ya bloquea hasta que llega una trama real.
     """
     global latest_reading
     while True:
@@ -127,8 +134,10 @@ async def telemetry_loop() -> None:
                     )
         except Exception:
             logging.exception("error en el ciclo de telemetría; se reintenta")
+            await asyncio.sleep(ERROR_RETRY_DELAY_S)
+            continue
 
-        await asyncio.sleep(TELEMETRY_INTERVAL_S)
+        await asyncio.sleep(source.poll_interval_s)
 
 
 @asynccontextmanager

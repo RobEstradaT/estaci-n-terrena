@@ -6,100 +6,81 @@ Construir progresivamente una estación terrena funcional para la recepción, pr
 
 ## Incremento 0 — Preparación
 
-Estado: PENDIENTE
+Estado: COMPLETADO
 
-Objetivo:
-
-- Preparar estructura del proyecto.
-- Configurar entorno.
-- Definir arquitectura.
-- Configurar backend y frontend base.
-- Crear documentación del proyecto.
+Se creó la estructura `backend/` (FastAPI, paquete `telemetry`) y
+`frontend/` (React + Vite), con dependencias fijadas en
+`requirements.txt` y `package.json`.
 
 ## Incremento 1 — Fuente de telemetría y backend
 
-Estado: PENDIENTE
+Estado: COMPLETADO
 
-Objetivo:
-
-Crear una fuente de datos simulada que genere telemetría y desarrollar el procesamiento inicial en Python.
-
-Debe demostrar:
-
-- Generación de datos.
-- Recepción.
-- Estructuración.
-- Validación básica.
-- Procesamiento.
+Se implementó `Simulator` (perfil de vuelo: ascenso suavizado ~35 s,
+apogeo a 1000 m, descenso bajo paracaídas a tasa constante, aterrizaje)
+detrás de la interfaz `TelemetrySource`, y `processor.py` con validación
+de rangos de sanidad y generación de advertencias.
 
 ## Incremento 2 — Comunicación en tiempo real
 
-Estado: PENDIENTE
+Estado: COMPLETADO
 
-Objetivo:
-
-Implementar FastAPI y WebSocket para enviar la telemetría procesada desde Python hacia React.
+FastAPI expone `/ws/telemetry` (WebSocket, difunde cada lectura
+procesada) y `/api/status` / `/api/telemetry/latest` (REST).
 
 ## Incremento 3 — Dashboard
 
-Estado: PENDIENTE
+Estado: COMPLETADO
 
-Objetivo:
-
-Crear la interfaz principal de la estación terrena.
-
-Debe mostrar:
-
-- Estado del sistema.
-- Estado de recepción.
-- Valores actuales.
-- Información básica de telemetría.
+Interfaz en React con encabezado de misión (estado de enlace, reloj,
+contador de paquetes), hero de altitud/fase, y tarjetas con los valores
+actuales de temperatura, presión, CO₂, aceleración total, RSSI y SNR (la
+tarjeta se resalta si el valor viene marcado con advertencia).
 
 ## Incremento 4 — Gráficas en tiempo real
 
-Estado: PENDIENTE
+Estado: COMPLETADO
 
-Objetivo:
+Gráficas en vivo (Recharts) de altitud, velocidad vertical, temperatura,
+presión, aceleración total, RSSI y SNR. Flujo verificado:
 
-Representar las variables de telemetría mediante gráficas que se actualicen conforme llegan nuevos datos.
-
-Al completar este incremento debe existir un prototipo demostrable del flujo:
-
-Datos
-→ Backend
-→ Procesamiento
-→ WebSocket
-→ React
-→ Visualización
+Datos simulados → Backend → Procesamiento → WebSocket → React → Visualización
 
 ## Incremento 5 — Comunicación UART real
 
-Estado: IMPLEMENTADO (sin prueba con ESP32 físico)
+Estado: IMPLEMENTADO (pendiente de prueba con ESP32 físico)
 
-Se añadió `SerialESP32` (`backend/app/telemetry/serial_esp32.py`) con
-`parse_frame` aislado (formato confirmado en PROTOCOL.md: 9 campos
-separados por coma). La fuente activa se elige con
+`SerialESP32` (`backend/app/telemetry/serial_esp32.py`) con `parse_frame`
+aislado (formato confirmado en PROTOCOL.md: 9 campos separados por coma;
+rechaza `nan`/`inf`). La fuente activa se elige con
 `TELEMETRY_SOURCE=simulator|serial`; puerto y baudrate van por
 `SERIAL_PORT` y `SERIAL_BAUDRATE` (obligatorios en modo serial).
+El ciclo del backend no añade esperas con la fuente serial
+(`poll_interval_s = 0`), para no acumular retraso.
 
-Probado: parseo de tramas válidas e inválidas, lectura vía puerto
-virtual `loop://` de pyserial, y puerto inexistente sin tumbar el
-proceso. No hay ESP32 USB conectado en esta máquina (solo COM Bluetooth),
-así que falta la prueba end-to-end con hardware real.
+Herramienta de diagnóstico: `backend/tools/check_serial.py` valida puerto,
+baudrate y formato sin levantar el backend.
 
-Objetivo:
+Probado sin hardware: parseo de tramas válidas e inválidas, lectura vía
+puerto virtual `loop://` de pyserial y puerto inexistente sin tumbar el
+proceso.
 
-Sustituir la fuente simulada por la comunicación real con el ESP32 mediante puerto serial.
-
-El formato exacto de la trama deberá confirmarse antes de implementar el parser definitivo.
+Pendiente: prueba end-to-end con el ESP32 físico; confirmar baudrate,
+unidad de temperatura, algoritmo de `pass` y tipo de dato de los campos.
 
 ## Incremento 6 — Persistencia
 
-Estado: PENDIENTE
+Estado: COMPLETADO
 
-Objetivo:
+SQLite organizado por misión (`database.py`): una misión activa a la vez
+(índice único parcial), inserción solo mientras la misión está activa,
+cierre de misiones huérfanas al arrancar. Exportación a CSV por bloques
+(`exporter.py`). API de misiones en `main.py`. En el frontend,
+`MissionPanel` + `useMissions` permiten iniciar/finalizar misiones y
+descargar el CSV. Documentación en `PERSISTENCE.md`; pruebas en
+`backend/tests/test_database.py`.
 
-Implementar SQLite para almacenar sesiones y telemetría.
+Pendiente (Incremento 7): normalizar `sequence` y `mission_time_s` por misión.
 
 ## Incremento 7 — Históricos y análisis
 
@@ -118,7 +99,7 @@ Objetivo:
 Implementar:
 
 - Señal débil.
-- Pérdida de comunicación.
+- Pérdida de comunicación (hoy el indicador "ENLACE ACTIVO" solo refleja la conexión navegador-backend).
 - Datos inválidos.
 - Errores seriales.
 - Otras condiciones relevantes.

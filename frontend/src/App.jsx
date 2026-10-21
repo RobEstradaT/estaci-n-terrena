@@ -1,6 +1,7 @@
 import { useTelemetrySocket } from "./hooks/useTelemetrySocket";
 import { deriveMissionPhase } from "./utils/missionPhase";
 import MissionHeader from "./components/MissionHeader";
+import MissionPanel from "./components/MissionPanel";
 import AltitudeHero from "./components/AltitudeHero";
 import InstrumentGrid from "./components/InstrumentGrid";
 import TelemetryCharts from "./components/TelemetryCharts";
@@ -15,6 +16,7 @@ export default function App() {
       <MissionHeader connectionState={connectionState} latest={latest} />
 
       <main className="app__main">
+        <MissionPanel />
         <AltitudeHero latest={latest} phase={phase} />
         <InstrumentGrid latest={latest} />
         <TelemetryCharts history={history} />

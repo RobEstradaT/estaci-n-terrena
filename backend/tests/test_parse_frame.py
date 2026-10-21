@@ -45,6 +45,12 @@ class ParseFrameTests(unittest.TestCase):
         with self.assertRaises(InvalidFrameError):
             parse_frame("p,22.5,abc,101.3,150,9.8,1.2,-80,5.5")
 
+    def test_nan_and_inf_are_invalid(self):
+        # Arduino imprime nan/inf cuando falla un sensor.
+        for bad in ("nan", "inf", "-inf"):
+            with self.assertRaises(InvalidFrameError):
+                parse_frame(f"p,22.5,{bad},101.3,150,9.8,1.2,-80,5.5")
+
     def test_empty_line_is_invalid(self):
         with self.assertRaises(InvalidFrameError):
             parse_frame("\n")
@@ -80,6 +86,10 @@ class SerialESP32LoopTests(unittest.IsolatedAsyncioTestCase):
         )
         self.assertFalse(source._try_open())
         self.assertFalse(source.is_connected())
+
+    def test_serial_source_does_not_add_polling_delay(self):
+        source = SerialESP32(port="loop://", baudrate=9600)
+        self.assertEqual(source.poll_interval_s, 0.0)
 
 
 if __name__ == "__main__":

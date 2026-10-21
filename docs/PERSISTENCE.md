@@ -29,7 +29,7 @@ telemetry  (id, mission_id → missions.id, sequence, mission_time_s, received_a
 - `warnings`: lista JSON de advertencias del procesador.
 - Fechas en ISO 8601 UTC.
 
-Archivo: `backend/data/cansat.db` (configurable con `DATABASE_PATH`). No debe versionarse en Git.
+Archivo: `backend/data/cansat.db` (configurable con `DATABASE_PATH`). No debe versionarse en Git (`backend/.gitignore` ignora `data/`).
 
 ## API
 
@@ -53,4 +53,9 @@ Archivo: `backend/data/cansat.db` (configurable con `DATABASE_PATH`). No debe ve
 
 - **Unidad de temperatura [PENDIENTE DE CONFIRMAR]**: la columna se llama `temperature_c` porque así se nombra en todo el sistema, pero la unidad real del ESP32 sigue sin confirmarse (ver `PROTOCOL.md`).
 - **`sequence` y `mission_time_s`** son los de la fuente de datos y **no se reinician** al crear una misión; una misión iniciada a mitad de un vuelo empieza con valores distintos de 0. Normalizarlos (tiempo relativo al inicio de la misión) se decide en el Incremento 7, cuando se grafiquen históricos.
-- **Frecuencia de lectura**: el ciclo del backend lee una trama por segundo (`TELEMETRY_INTERVAL_S`). Si el CanSat transmite a mayor frecuencia, el almacenamiento solo guardará lo que el ciclo alcance a leer. Conviene confirmar la frecuencia real de transmisión antes de la prueba con hardware.
+
+## Frecuencia de lectura
+
+- Con el `Simulator`, el ciclo del backend lee una trama por segundo (`TELEMETRY_INTERVAL_S`).
+- Con `SerialESP32`, el ciclo **no espera** (`poll_interval_s = 0`): procesa y guarda cada trama válida en cuanto llega, sea cual sea la frecuencia de transmisión del CanSat. Así no se acumula retraso en el buffer serial.
+- Se descartan (y se registran en el log) las tramas inválidas, incluidas las que traen `nan` o `inf`.

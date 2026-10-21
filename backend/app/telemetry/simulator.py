@@ -43,6 +43,9 @@ class Simulator(TelemetrySource):
 
     def __init__(self, dt_s: float = 1.0, seed: int | None = None):
         self._dt_s = dt_s
+        # El simulador no bloquea: el ciclo del backend debe esperar dt_s
+        # entre lecturas para emitir ~1 muestra por intervalo.
+        self.poll_interval_s = dt_s
         self._mission_time_s = 0.0
         self._sequence = 0
         self._rng = random.Random(seed)

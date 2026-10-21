@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import math
 import time
 
 import serial
@@ -47,13 +48,19 @@ def _parse_float(field: str, name: str) -> float:
 
     El tipo de dato y la precisión exactos siguen PENDIENTES DE CONFIRMAR
     en PROTOCOL.md; no se asume entero ni un número fijo de decimales.
+
+    Se rechazan `nan` e `inf` (Arduino los imprime cuando falla un sensor):
+    no son JSON válido y no se pueden guardar en la base de datos.
     """
     try:
-        return float(field)
+        value = float(field)
     except (TypeError, ValueError) as exc:
         raise InvalidFrameError(
             f"campo '{name}' no numérico: {field!r}"
         ) from exc
+    if not math.isfinite(value):
+        raise InvalidFrameError(f"campo '{name}' no finito: {field!r}")
+    return value
 
 
 def parse_frame(
@@ -70,8 +77,8 @@ def parse_frame(
 
     No valida `pass` (algoritmo PENDIENTE). No verifica checksum/CRC
     (no existen aún). Si el número de campos no es 9 o un valor de
-    telemetría no convierte a float, la trama se considera inválida
-    (`InvalidFrameError`).
+    telemetría no convierte a un float finito, la trama se considera
+    inválida (`InvalidFrameError`).
     """
     line = raw_line.strip()
     fields = line.split(FIELD_SEPARATOR)
@@ -118,6 +125,10 @@ class SerialESP32(TelemetrySource):
     """
     Lee telemetría del ESP32 por UART (línea a línea) y la entrega
     como TelemetryReading, igual que Simulator.
+
+    `poll_interval_s` queda en 0 (valor heredado): `read()` ya bloquea
+    hasta recibir una trama, así que el ciclo del backend no debe añadir
+    esperas que acumulen retraso.
     """
 
     def __init__(

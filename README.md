@@ -1,83 +1,232 @@
-# Estación Terrena CanSat — Avance Incrementos 0 a 4
+# Estación Terrena CanSat — Incrementos 0 a 6
 
-Este entregable corresponde a los Incrementos 0-4 de `DEVELOPMENT_PLAN.md`:
-preparación del proyecto, fuente de telemetría simulada + backend,
-comunicación en tiempo real (WebSocket), dashboard, y gráficas en vivo.
+Estación terrena para recibir, validar, guardar y visualizar la telemetría de un
+CanSat. Flujo completo:
 
-**Actualizado** tras confirmarse el protocolo real de la ESP32 (ver
-`PROTOCOL.md`): la presión ahora se maneja en **kPa** (no hPa), y se
-agregó la variable **aceleración total (m/s²)**, que no estaba
-contemplada en el alcance original y solo se conoció al confirmar el
-formato de trama.
-
-## Cómo ejecutarlo (2 terminales, igual que tu flujo en Cursor)
-
-**Terminal 1 — Backend**
-```bash
-cd backend
-python3 -m venv venv          # solo la primera vez
-source venv/bin/activate      # Windows: venv\Scripts\activate
-pip install -r requirements.txt
-uvicorn app.main:app --reload --port 8000
+```
+CanSat → LoRa → receptor LoRa → ESP32 → UART/USB → backend Python
+       → validación → WebSocket → React (en vivo)
+                    → SQLite (si hay misión activa) → CSV
 ```
 
-**Terminal 2 — Frontend**
+## Estado
+
+| Incremento | Estado |
+|---|---|
+| 0 Preparación | Completado |
+| 1 Simulador + procesamiento | Completado |
+| 2 FastAPI + WebSocket | Completado |
+| 3 Dashboard | Completado |
+| 4 Gráficas en vivo | Completado |
+| 5 UART real (`SerialESP32`) | Implementado; falta la prueba con el ESP32 físico |
+| 6 Persistencia en SQLite + exportación CSV | Completado |
+| 7-9 Históricos, alertas, pruebas finales | Pendientes |
+
+## Requisitos
+
+- **Python 3.10 o superior**
+- **Node.js 20.19+ o 22.12+** (requisito de Vite 8)
+- Para el modo real: un ESP32 conectado por USB (cable de **datos**, no solo de carga)
+
+## Instalación (una sola vez)
+
 ```bash
+# Backend
+cd backend
+python3 -m venv venv
+source venv/bin/activate          # Windows PowerShell: venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+
+# Frontend
+cd ../frontend
+npm install
+```
+
+## Modo A — Simulador (demo sin hardware)
+
+Es el modo predeterminado.
+
+```bash
+# Terminal 1
+cd backend
+source venv/bin/activate          # Windows: venv\Scripts\Activate.ps1
+uvicorn app.main:app --reload --port 8000
+
+# Terminal 2
 cd frontend
-npm install                   # solo la primera vez
 npm run dev
 ```
 
-Abre `http://localhost:5173`. Deberías ver "ENLACE ACTIVO" en el header y
-la altitud subiendo desde 0 (el `Simulator` corre un vuelo completo:
-ascenso ~35s, apogeo a 1000 m, descenso bajo paracaídas, aterrizaje, y
-luego se queda en 0 — reiniciar el backend repite el vuelo).
+Abre `http://localhost:5173`. Verás un vuelo completo simulado (ascenso ~35 s,
+apogeo a 1000 m, descenso, aterrizaje). Reiniciar el backend repite el vuelo.
 
-## Qué se completó
+## Modo B — ESP32 real, paso a paso
 
-- **Incremento 0**: estructura de proyecto (`backend/`, `frontend/`),
-  entorno configurado, dependencias fijadas en `requirements.txt` /
-  `package.json`.
-- **Incremento 1**: `Simulator` (fuente de telemetría simulada con perfil
-  de vuelo ascenso/descenso) + `processor.py` (validación de rangos,
-  advertencias). Ambos están detrás de la interfaz `TelemetrySource`
-  (`backend/app/telemetry/source.py`) para poder sustituirla por
-  `SerialESP32` en el Incremento 5 sin tocar el resto del sistema.
-- **Incremento 2**: FastAPI con endpoint WebSocket `/ws/telemetry` que
-  transmite cada lectura procesada en tiempo real, más `/api/status` y
-  `/api/telemetry/latest` como REST.
-- **Incremento 3**: Dashboard en React (`MissionHeader`, `AltitudeHero`,
-  `InstrumentGrid`) mostrando estado del sistema, estado de enlace y
-  valores actuales de las 7 variables de telemetría.
-- **Incremento 4**: `TelemetryCharts` con gráficas en tiempo real
-  (Recharts) de altitud, velocidad, temperatura, presión, aceleración
-  total, RSSI y SNR, actualizándose conforme llegan datos por WebSocket.
+### 1. Conecta el ESP32 y encuentra su puerto
 
-Flujo demostrado end-to-end:
-`Simulator → validación/procesamiento → WebSocket → React → gráficas`
+El ESP32 es el que está unido al receptor LoRa y ejecuta `Serial.println(msg2)`.
 
-## Qué queda pendiente (según el plan)
+```bash
+cd backend
+python -m serial.tools.list_ports -v
+```
 
-- Incremento 5: sustituir `Simulator` por `SerialESP32` — **bloqueado**
-  hasta confirmar el formato de trama real con el equipo de hardware
-  (ver `PROTOCOL.md`, sigue en estado PENDIENTE).
-- Incremento 6: persistencia en SQLite (por ahora solo se guarda la
-  última lectura en memoria, sin historial permanente ni por misión).
-- Incremento 7: consulta y análisis de históricos.
-- Incremento 8: alertas visuales dedicadas y umbrales configurables
-  (el procesador ya genera `warnings`, pero el frontend solo resalta
-  la tarjeta afectada; falta un panel de alertas explícito).
-- Incremento 9: pruebas formales, manejo de errores más robusto,
-  pulido de interfaz y documentación final.
+- **Windows:** `COM3`, `COM5`... (también en Administrador de dispositivos → Puertos).
+  Ignora los "Enlace serie estándar" de Bluetooth: no son el ESP32.
+- **Linux:** `/dev/ttyUSB0` o `/dev/ttyACM0`. Si da "Permission denied":
+  `sudo usermod -aG dialout $USER` y vuelve a iniciar sesión.
+- **macOS:** `/dev/cu.usbserial-*` o `/dev/cu.SLAB_USBtoUART`.
 
-## Notas técnicas
+Truco: ejecuta el comando con el ESP32 desconectado y otra vez conectado; el
+puerto nuevo es el tuyo.
 
-- La fase de misión (`ASCENSO`, `DESCENSO`, etc.) que ves en el dashboard
-  se **infiere en el frontend** a partir de altitud/velocidad recientes;
-  no es un dato transmitido por el CanSat ni algo confirmado en
-  `PROTOCOL.md`. Es solo una ayuda visual y se basa en una ventana móvil
-  de las últimas ~120 lecturas, así que si recargas la página bastante
-  después del aterrizaje puede tardar en reflejar "ATERRIZADO" hasta
-  tener suficiente historial reciente.
-- Los rangos de validación en `processor.py` son límites de sanidad
-  orientativos, no especificaciones oficiales de los sensores.
+### 2. Averigua el baudrate
+
+El baudrate **no está confirmado en `PROTOCOL.md`** y el sistema no lo asume.
+Búscalo en el código del ESP32: es el número de `Serial.begin(...)` (115200 es
+muy común, pero verifica el tuyo).
+
+### 3. Libera el puerto
+
+Solo un programa puede usar el puerto a la vez. Cierra el Monitor Serie de
+Arduino IDE/PlatformIO y cualquier otro backend que esté corriendo.
+
+### 4. Prueba el enlace SIN levantar el sistema
+
+```bash
+cd backend
+python tools/check_serial.py COM5 115200
+```
+
+(Sustituye puerto y baudrate.) Muestra cada trama como `[OK]` o `[FALLA]` con el
+motivo, y `AVISO` si algún valor sale de los rangos de sanidad. Lo esperado:
+varias líneas `[OK]` seguidas. Una falla en la primera línea es normal.
+
+No avances hasta ver `[OK]`. La sección "Solución de problemas" cubre los fallos.
+
+### 5. Arranca el backend en modo serial
+
+Las variables solo valen para la terminal donde las defines.
+
+**Windows (PowerShell):**
+```powershell
+cd backend
+venv\Scripts\Activate.ps1
+$env:TELEMETRY_SOURCE = "serial"
+$env:SERIAL_PORT = "COM5"
+$env:SERIAL_BAUDRATE = "115200"
+uvicorn app.main:app --port 8000
+```
+
+**Windows (cmd):**
+```bat
+set TELEMETRY_SOURCE=serial
+set SERIAL_PORT=COM5
+set SERIAL_BAUDRATE=115200
+uvicorn app.main:app --port 8000
+```
+
+**Linux / macOS:**
+```bash
+export TELEMETRY_SOURCE=serial SERIAL_PORT=/dev/ttyUSB0 SERIAL_BAUDRATE=115200
+uvicorn app.main:app --port 8000
+```
+
+Usa `uvicorn` **sin `--reload`** con hardware: el recargador reinicia el proceso
+y puede dejar el puerto ocupado unos segundos.
+
+En el log debe aparecer `puerto serial abierto: COM5 @ 115200 baud`. Si el ESP32
+no estaba listo, el backend reintenta cada segundo solo.
+
+### 6. Arranca el frontend
+
+```bash
+cd frontend
+npm run dev
+```
+
+Abre `http://localhost:5173`.
+
+### 7. Comprueba que los datos son reales
+
+- `http://localhost:8000/api/status` debe mostrar `"source_type": "SerialESP32"` y
+  `"source_connected": true`.
+- En el dashboard, el contador **Paquetes** debe subir con cada trama recibida.
+- **Ojo:** el indicador "ENLACE ACTIVO" del encabezado solo dice que el navegador
+  está conectado al backend. **No** indica que el CanSat esté transmitiendo. La
+  alerta de pérdida de señal llega en el Incremento 8.
+
+### 8. Graba una misión
+
+Sin misión activa, los datos se ven pero **no se guardan**.
+
+1. Escribe un nombre en el panel "Misión" y pulsa **Nueva misión** poco antes del lanzamiento.
+2. El contador de muestras sube mientras graba.
+3. Tras el aterrizaje pulsa **Finalizar misión**.
+4. **Exportar CSV** descarga los datos (UTF-8 con BOM; abre bien en Excel).
+
+Los datos quedan en `backend/data/cansat.db`. Cópialo como respaldo después de
+cada prueba importante.
+
+### Lista rápida para un día de pruebas
+
+1. ESP32 conectado, Monitor Serie cerrado.
+2. `check_serial.py` muestra `[OK]` consecutivos.
+3. Backend en modo serial; `/api/status` con `source_connected: true`.
+4. Frontend abierto; "Paquetes" sube.
+5. **Nueva misión** antes del lanzamiento.
+6. **Finalizar misión** después del aterrizaje.
+7. Exportar CSV y respaldar `cansat.db`.
+
+## Variables de entorno
+
+| Variable | Descripción | Predeterminado |
+|---|---|---|
+| `TELEMETRY_SOURCE` | `simulator` o `serial` | `simulator` |
+| `SERIAL_PORT` | Puerto (obligatoria si `serial`) | — |
+| `SERIAL_BAUDRATE` | Baudrate (obligatoria si `serial`) | — |
+| `DATABASE_PATH` | Ruta del archivo SQLite | `backend/data/cansat.db` |
+
+## Pruebas automáticas (sin hardware)
+
+```bash
+cd backend
+source venv/bin/activate
+python -m unittest discover -s tests -v
+```
+
+## Solución de problemas
+
+| Síntoma | Causa probable | Qué hacer |
+|---|---|---|
+| `No se pudo abrir COMx` / "Acceso denegado" | Otro programa usa el puerto, o puerto equivocado | Cierra Monitor Serie y otros backends; revisa `list_ports` |
+| Todas las tramas `[FALLA]` con caracteres `�` | Baudrate distinto al de `Serial.begin` | Corrige `SERIAL_BAUDRATE` |
+| No llega ninguna línea | ESP32 sin transmitir, cable solo de carga, o el receptor LoRa no recibe del CanSat | Revisa cable, alimenta el CanSat, mira el Monitor Serie del IDE (luego ciérralo) |
+| "se esperaban 9 campos" | El formato de `msg2` difiere de `PROTOCOL.md` | Compara con `pass,v1,v2,v3,v4,v5,v6,rssi,snr` |
+| "campo ... no numérico" / "no finito" | Texto, coma decimal, o `nan`/`inf` del sensor | Corrige en el firmware; el backend descarta esa trama |
+| Líneas basura solo al inicio | Algunas placas se reinician al abrir el puerto y escriben su log de arranque | Normal; el backend las descarta |
+| "TELEMETRY_SOURCE=serial requiere SERIAL_PORT y SERIAL_BAUDRATE" | Faltan variables | Defínelas en la misma terminal |
+| Dashboard con "ENLACE ACTIVO" pero valores en `--` | Backend sin tramas válidas | Mira el log del backend |
+| Muchos avisos "fuera de rango" | Los rangos de `processor.py` son orientativos | Ajusta `RANGES` (p. ej. altura si es sobre el nivel del mar) |
+| Misión con 0 muestras | No llegan tramas válidas | Revisa `/api/status` y el log |
+
+## Limitaciones conocidas (PENDIENTE DE CONFIRMAR)
+
+- **Unidad de temperatura:** el sistema la trata y rotula como °C, pero no está confirmada.
+- **Campo `pass`:** se ignora; su algoritmo no está definido. No hay checksum ni CRC.
+- **Tipo y precisión** de cada campo: se aceptan como `float`.
+- **`sequence` y `mission_time_s`** no se reinician al iniciar misión (Inc. 7).
+- **Fase de misión** (ASCENSO, DESCENSO...): se infiere en el frontend; el CanSat no la transmite.
+- **Pérdida de enlace y alertas dedicadas:** Incremento 8.
+
+## Estructura
+
+```
+backend/
+  app/            main.py, database.py, exporter.py, connection_manager.py
+  app/telemetry/  source.py, simulator.py, serial_esp32.py, processor.py, schema.py
+  tools/          check_serial.py
+  tests/          test_parse_frame.py, test_database.py
+frontend/src/     App.jsx, components/, hooks/, utils/
+docs/             PROJECT_CONTEXT, ARCHITECTURE, PROTOCOL, PERSISTENCE, DEVELOPMENT_PLAN
+```

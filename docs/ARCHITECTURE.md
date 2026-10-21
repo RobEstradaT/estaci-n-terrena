@@ -75,42 +75,35 @@ El frontend no debe encargarse directamente de leer el puerto serial.
 
 ## 3. Fuente de datos
 
-El backend debe utilizar una abstracción que permita trabajar inicialmente con:
+El backend utiliza una abstracción (`TelemetrySource`, en `backend/app/telemetry/source.py`) que permite trabajar con:
 
 ```text
 Simulator
 ```
 
-y posteriormente con:
+y con:
 
 ```text
 SerialESP32
 ```
 
-Ambas fuentes deben entregar al procesamiento una estructura de telemetría equivalente.
+Ambas fuentes entregan al procesamiento una estructura de telemetría equivalente (`TelemetryReading`). Esto permite desarrollar y probar el sistema sin depender del hardware.
 
-Esto permitirá desarrollar y probar el sistema sin depender inicialmente del hardware.
+La fuente activa se elige con la variable de entorno `TELEMETRY_SOURCE` (`simulator` | `serial`); ver el README para el procedimiento completo.
 
-Nota confirmada por el protocolo real (ver `PROTOCOL.md`): la trama del
-ESP32 es una línea de texto ASCII terminada en `\n` (enviada mediante
-`Serial.println`), con campos separados por comas. Esto implica que
-`SerialESP32` deberá leer el puerto serial línea por línea (p. ej.
-`readline()`), no por conteo fijo de bytes ni por un protocolo binario.
-El parseo concreto de esa línea (`parse_frame`) se implementará en el
-Incremento 5 y no se adelanta aquí; el tipo de dato de cada campo y la
-validación de `pass` siguen PENDIENTES DE CONFIRMAR.
+Cada fuente declara en `poll_interval_s` cuánto debe esperar el ciclo del backend entre lecturas: el `Simulator` marca su propio ritmo (1 s) y `SerialESP32` usa 0, porque su `read()` ya bloquea hasta que llega una trama real.
+
+Protocolo confirmado (ver `PROTOCOL.md`): la trama del ESP32 es una línea de texto ASCII terminada en `\n` (enviada mediante `Serial.println`), con campos separados por comas. `SerialESP32` lee el puerto serial línea por línea (`readline()`) y `parse_frame` traduce la línea a `TelemetryReading`. Se rechazan las tramas con un número de campos distinto de 9 o con valores no numéricos o no finitos (`nan`, `inf`). El tipo de dato de cada campo, la unidad de temperatura y la validación de `pass` siguen PENDIENTES DE CONFIRMAR.
 
 ## 4. Comunicación backend/frontend
 
-Para datos en tiempo real se utilizará WebSocket.
+Para datos en tiempo real se utiliza WebSocket (`/ws/telemetry`).
 
-Para consultas históricas y operaciones convencionales se podrá utilizar una API HTTP mediante FastAPI.
+Para misiones, consultas y exportación se utiliza una API HTTP mediante FastAPI (ver `PERSISTENCE.md`).
 
 ## 5. Base de datos
 
-SQLite será utilizada para almacenamiento local.
-
-La estructura definitiva se establecerá durante el incremento correspondiente a persistencia.
+SQLite se usa para almacenamiento local (`backend/data/cansat.db`). La telemetría se guarda solo mientras hay una misión activa. El esquema, las reglas de funcionamiento y la exportación a CSV están documentados en `PERSISTENCE.md`.
 
 ## 6. Estado de la arquitectura
 
