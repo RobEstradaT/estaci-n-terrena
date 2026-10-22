@@ -119,6 +119,10 @@ ESP32 física se añadió `firmware/esp32_telemetria_prueba/` (generador de
 tramas de prueba) y `docs/PRUEBA_SERIAL.md` (pruebas P1-P10 con criterios de
 aceptación). Este incremento pasa a COMPLETADO al registrar esos resultados.
 
+Con el código del receptor se confirmó el baudrate (115200) y que `pass` es
+la cadena fija `571617`. El backend valida `pass` (`FRAME_PASS`) y omite las
+líneas vacías sin aviso.
+
 El simulador sigue siendo el predeterminado y no cambia su comportamiento.
 
 Objetivo:

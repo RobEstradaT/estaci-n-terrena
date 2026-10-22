@@ -29,7 +29,7 @@ datos, CSV). No prueba el enlace LoRa ni el firmware real.
 2. Abre `firmware/esp32_telemetria_prueba/esp32_telemetria_prueba.ino`.
 3. Placa: "ESP32 Dev Module" (o la tuya). Elige el puerto y pulsa Subir.
 4. Abre el Monitor Serie a **115200** baudios: deben salir líneas como
-   `TEST12,21.92,412,100.67,...` una vez por segundo.
+   `571617,21.92,412,100.67,...` una vez por segundo.
 5. **Cierra el Monitor Serie.** Si queda abierto, ocupa el puerto y el backend
    no podrá abrirlo.
 
@@ -56,6 +56,7 @@ Ejecútalas en orden; no avances si una falla (la sección 5 ayuda a diagnostica
 | P8 | Desconexión y reconexión | Desconecta el USB y vuelve a conectarlo **en el mismo puerto físico** | `source_connected` pasa a `false` y vuelve a `true` solo, sin reiniciar el backend |
 | P9 | Misión y CSV | **Nueva misión**, espera 60 s, **Finalizar misión**, **Exportar CSV** y ábrelo en Excel | Muestras ≈ 60; acentos correctos; una fila por muestra |
 | P10 | Estabilidad | Un vuelo completo del sketch (190 s) o 10 min de transmisión | Sin errores en el log; `sequence` continuo, sin saltos |
+| P11 | `pass` incorrecto (prueba negativa) | Arranca el backend con `$env:FRAME_PASS = "000000"` | Todas las tramas se descartan con `pass inválido`; **Paquetes** no sube. Sin la variable (o con `571617`) vuelve a funcionar |
 
 Notas:
 
@@ -69,7 +70,11 @@ Notas:
 
 Las mismas pruebas, saltando la sección 2. Diferencias:
 
-- El baudrate es el de `Serial.begin(...)` del firmware real (no se asume).
+- El baudrate es **115200** (`Serial.begin(115200)` del receptor) y el `pass` esperado es
+  `571617`; el backend lo valida (`FRAME_PASS`, ver `README.md`).
+- Quita `Serial.println();` antes de `Serial.println(msg2);` en el firmware: genera una
+  línea vacía por paquete (el backend ya la omite sin aviso, pero ensucia el Monitor Serie).
+- El receptor tarda ~10 s en arrancar tras abrir el puerto; espera antes de iniciar la misión.
 - Si el CanSat no está transmitiendo no llegan tramas; es normal. El indicador
   "ENLACE ACTIVO" solo dice que el navegador está conectado al backend.
 - Si llegan líneas con otro formato (p. ej. respuestas del módulo LoRa), el
@@ -86,14 +91,15 @@ Las mismas pruebas, saltando la sección 2. Diferencias:
 | `No se pudo abrir COMx` / acceso denegado | Monitor Serie abierto u otro backend usando el puerto |
 | Todo `[FALLA]` con `�` | Baudrate distinto al de `Serial.begin` |
 | No llega ninguna línea | La ESP32 no transmite, o (caso B) el receptor no recibe del CanSat |
+| `pass inválido` en el log | El primer campo no es `571617`: revisa `String pass` del firmware o `FRAME_PASS` |
 | El backend arranca pero el dashboard está en `--` | Aún no llegan tramas válidas: mira el log del backend |
 
 Más casos en `README.md`, "Solución de problemas".
 
 ## 6. Qué no cubre esta prueba
 
-- El algoritmo de `pass`, la unidad de temperatura y el tipo/precisión de los
-  campos siguen **PENDIENTES DE CONFIRMAR** (`PROTOCOL.md`).
+- La unidad de temperatura y el tipo/precisión de los campos siguen
+  **PENDIENTES DE CONFIRMAR** (`PROTOCOL.md`).
 - No valida el enlace LoRa ni el alcance (~1 km).
 - Las pruebas con el sketch no sustituyen una prueba con el firmware real.
 
@@ -111,3 +117,4 @@ Más casos en `README.md`, "Solución de problemas".
 | P8 | | | | |
 | P9 | | | | |
 | P10 | | | | |
+| P11 | | | | |

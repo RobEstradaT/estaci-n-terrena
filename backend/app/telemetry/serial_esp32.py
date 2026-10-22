@@ -26,6 +26,10 @@ logger = logging.getLogger(__name__)
 EXPECTED_FIELD_COUNT = 9
 FIELD_SEPARATOR = ","
 
+# Confirmado en el código del receptor (`String pass = "571617";`): `pass` es una
+# cadena fija. Solo se valida si se pasa `expected_pass` (ver PROTOCOL.md).
+DEFAULT_FRAME_PASS = "571617"
+
 # Índices confirmados: pass,value1..value6,rssi,snr
 IDX_PASS = 0
 IDX_TEMPERATURE = 1  # unidad pendiente de confirmar
@@ -68,6 +72,7 @@ def parse_frame(
     *,
     sequence: int = 0,
     mission_time_s: float = 0.0,
+    expected_pass: str | None = None,
 ) -> TelemetryReading:
     """
     Traduce una línea cruda del ESP32 a TelemetryReading.
@@ -75,8 +80,9 @@ def parse_frame(
     Formato confirmado (PROTOCOL.md):
         pass,value1,value2,value3,value4,value5,value6,rssi,snr
 
-    No valida `pass` (algoritmo PENDIENTE). No verifica checksum/CRC
-    (no existen aún). Si el número de campos no es 9 o un valor de
+    Si `expected_pass` se indica, el campo `pass` (p0) debe coincidir con él;
+    si es None, p0 se ignora. No verifica checksum/CRC (no existen aún).
+    Si el número de campos no es 9, `pass` no coincide o un valor de
     telemetría no convierte a un float finito, la trama se considera
     inválida (`InvalidFrameError`).
     """
@@ -88,7 +94,12 @@ def parse_frame(
             f"se esperaban {EXPECTED_FIELD_COUNT} campos, se recibieron {len(fields)}"
         )
 
-    # p0 (`pass`): presente; algoritmo/validación PENDIENTE DE CONFIRMAR.
+    # p0 (`pass`): cadena fija confirmada; se valida solo si se pidió.
+    if expected_pass is not None and fields[IDX_PASS].strip() != expected_pass:
+        raise InvalidFrameError(
+            f"pass inválido: se esperaba {expected_pass!r}, "
+            f"se recibió {fields[IDX_PASS].strip()!r}"
+        )
 
     # unidad pendiente de confirmar
     temperature = _parse_float(fields[IDX_TEMPERATURE], "temperature")
@@ -137,6 +148,7 @@ class SerialESP32(TelemetrySource):
         baudrate: int,
         timeout_s: float = 1.0,
         reconnect_delay_s: float = 1.0,
+        expected_pass: str | None = None,
     ):
         if not port:
             raise ValueError("el puerto serial es obligatorio (no hardcodeado)")
@@ -147,6 +159,7 @@ class SerialESP32(TelemetrySource):
         self._baudrate = baudrate
         self._timeout_s = timeout_s
         self._reconnect_delay_s = reconnect_delay_s
+        self._expected_pass = expected_pass
         self._serial: serial.Serial | None = None
         self._connected = False
         self._sequence = 0
@@ -230,8 +243,13 @@ class SerialESP32(TelemetrySource):
             if raw_line is None:
                 continue
 
+            if not raw_line.strip():
+                # Línea vacía (p. ej. un println() sin contenido): no es una
+                # trama ni un error; se omite sin avisos.
+                continue
+
             try:
-                parsed = parse_frame(raw_line)
+                parsed = parse_frame(raw_line, expected_pass=self._expected_pass)
             except InvalidFrameError as exc:
                 logger.warning("trama inválida descartada: %s | crudo=%r", exc, raw_line)
                 continue

@@ -13,6 +13,7 @@ Ejecutar con:
 Fuente activa (sin comentar código):
     TELEMETRY_SOURCE=simulator   (predeterminado)
     TELEMETRY_SOURCE=serial SERIAL_PORT=COM3 SERIAL_BAUDRATE=115200
+    FRAME_PASS=571617            (opcional; vacío = no validar `pass`)
 
 Base de datos (opcional):
     DATABASE_PATH=ruta/al/archivo.db   (predeterminado: backend/data/cansat.db)
@@ -46,7 +47,7 @@ from .database import (
 )
 from .exporter import csv_chunks, export_filename
 from .telemetry.processor import process
-from .telemetry.serial_esp32 import SerialESP32
+from .telemetry.serial_esp32 import DEFAULT_FRAME_PASS, SerialESP32
 from .telemetry.simulator import Simulator
 from .telemetry.source import TelemetrySource
 
@@ -78,8 +79,8 @@ def create_source() -> TelemetrySource:
         if not port or not baud_raw:
             raise RuntimeError(
                 "TELEMETRY_SOURCE=serial requiere SERIAL_PORT y SERIAL_BAUDRATE "
-                "(el baudrate del ESP32 no está confirmado en PROTOCOL.md; "
-                "no se asume un valor fijo)."
+                "(en el firmware del receptor es 115200; no se asume un valor "
+                "por omisión)."
             )
         try:
             baudrate = int(baud_raw)
@@ -87,7 +88,12 @@ def create_source() -> TelemetrySource:
             raise RuntimeError(
                 f"SERIAL_BAUDRATE inválido: {baud_raw!r}"
             ) from exc
-        return SerialESP32(port=port, baudrate=baudrate)
+        # FRAME_PASS: valor esperado del campo `pass` (p0). Sin definir se usa el
+        # confirmado en el firmware del receptor; vacío = no validar.
+        frame_pass = os.environ.get("FRAME_PASS", DEFAULT_FRAME_PASS).strip() or None
+        return SerialESP32(
+            port=port, baudrate=baudrate, expected_pass=frame_pass
+        )
     raise RuntimeError(
         f"TELEMETRY_SOURCE desconocido: {kind!r} (use simulator o serial)"
     )

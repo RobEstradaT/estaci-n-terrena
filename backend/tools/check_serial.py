@@ -6,7 +6,7 @@ acepta y si `processor.process` la marca con advertencias. Sirve para
 confirmar puerto, baudrate y formato antes de la prueba real.
 
 Uso (desde la carpeta backend, con el venv activo):
-    python tools/check_serial.py PUERTO BAUDRATE [--lines 20] [--idle-timeout 10]
+    python tools/check_serial.py PUERTO BAUDRATE [--lines 20] [--idle-timeout 10] [--pass 571617]
 
 Ejemplos:
     python tools/check_serial.py COM5 115200
@@ -27,7 +27,11 @@ import serial  # noqa: E402
 from serial import SerialException  # noqa: E402
 
 from app.telemetry.processor import process  # noqa: E402
-from app.telemetry.serial_esp32 import InvalidFrameError, parse_frame  # noqa: E402
+from app.telemetry.serial_esp32 import (  # noqa: E402
+    DEFAULT_FRAME_PASS,
+    InvalidFrameError,
+    parse_frame,
+)
 
 
 def main() -> int:
@@ -41,7 +45,14 @@ def main() -> int:
         default=10.0,
         help="segundos sin datos antes de rendirse (default 10)",
     )
+    parser.add_argument(
+        "--pass",
+        dest="frame_pass",
+        default=DEFAULT_FRAME_PASS,
+        help=f"valor esperado del campo pass (default {DEFAULT_FRAME_PASS}); vacío = no validar",
+    )
     args = parser.parse_args()
+    expected_pass = args.frame_pass.strip() or None
 
     try:
         ser = serial.serial_for_url(args.port, baudrate=args.baudrate, timeout=1.0)
@@ -69,8 +80,11 @@ def main() -> int:
             last_data = time.monotonic()
             text = raw.decode("utf-8", errors="replace").rstrip("\r\n")
 
+            if not text.strip():
+                continue  # línea vacía: no es trama ni falla
+
             try:
-                reading = parse_frame(text)
+                reading = parse_frame(text, expected_pass=expected_pass)
             except InvalidFrameError as exc:
                 bad += 1
                 if "\ufffd" in text:
@@ -103,7 +117,7 @@ def main() -> int:
     elif ok == 0 and garbled > 0:
         print("Caracteres ilegibles: el baudrate casi seguro no coincide con Serial.begin(...).")
     elif ok == 0:
-        print("Llegan líneas pero ninguna coincide con el formato de 9 campos (ver PROTOCOL.md).")
+        print("Llegan líneas pero ninguna coincide con el formato de 9 campos ni con el pass esperado (ver PROTOCOL.md).")
     elif bad > 0:
         print("Algunas fallas al inicio son normales (arranque del ESP32 o línea cortada).")
     return 0 if ok > 0 else 2

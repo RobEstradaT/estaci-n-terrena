@@ -33,6 +33,19 @@ class ParseFrameTests(unittest.TestCase):
         reading = parse_frame("not-a-known-algo,1,2,3,4,5,6,-70,1")
         self.assertEqual(reading.altitude_m, 4.0)
 
+    def test_expected_pass_accepts_matching_frame(self):
+        reading = parse_frame(VALID, expected_pass="abc123")
+        self.assertEqual(reading.co2_ppm, 410.0)
+
+    def test_expected_pass_rejects_other_value(self):
+        with self.assertRaises(InvalidFrameError) as ctx:
+            parse_frame(VALID, expected_pass="571617")
+        self.assertIn("pass", str(ctx.exception))
+
+    def test_expected_pass_rejects_empty_pass_field(self):
+        with self.assertRaises(InvalidFrameError):
+            parse_frame(",22.5,410,101.3,150.0,9.8,1.2,-80,5.5", expected_pass="571617")
+
     def test_too_few_fields_is_invalid(self):
         with self.assertRaises(InvalidFrameError):
             parse_frame("1,2,3,4,5")
@@ -75,6 +88,30 @@ class SerialESP32LoopTests(unittest.IsolatedAsyncioTestCase):
         source._serial.write(VALID.encode("utf-8"))
         reading = await asyncio.wait_for(source.read(), timeout=2.0)
         self.assertEqual(reading.velocity_ms, 1.2)
+        source.close()
+
+    async def test_blank_lines_are_skipped_without_warning(self):
+        source = SerialESP32(port="loop://", baudrate=9600, timeout_s=0.2)
+        source._try_open()
+        source._serial.write(b"\r\n\n")
+        source._serial.write(VALID.encode("utf-8"))
+        with self.assertNoLogs("app.telemetry.serial_esp32", level="WARNING"):
+            reading = await asyncio.wait_for(source.read(), timeout=2.0)
+        self.assertEqual(reading.co2_ppm, 410.0)
+        source.close()
+
+    async def test_frames_with_other_pass_are_discarded(self):
+        source = SerialESP32(
+            port="loop://", baudrate=9600, timeout_s=0.2, expected_pass="abc123"
+        )
+        source._try_open()
+        source._serial.write(b"zzz,22.5,999,101.3,150.0,9.8,1.2,-80,5.5\n")
+        source._serial.write(VALID.encode("utf-8"))
+        with self.assertLogs("app.telemetry.serial_esp32", level="WARNING") as logs:
+            reading = await asyncio.wait_for(source.read(), timeout=2.0)
+        self.assertEqual(reading.co2_ppm, 410.0)
+        self.assertEqual(reading.sequence, 1)
+        self.assertIn("pass inválido", logs.output[0])
         source.close()
 
     async def test_missing_port_stays_disconnected(self):

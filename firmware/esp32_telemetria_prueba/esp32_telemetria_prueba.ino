@@ -8,8 +8,8 @@
  *
  *   pass,temperatura,co2,presion,altura,aceleracion,velocidad,rssi,snr
  *
- * - `pass`: su algoritmo real está PENDIENTE DE CONFIRMAR; aquí es solo el
- *   texto "TEST" + contador, y el backend no lo valida.
+ * - `pass`: en el receptor real es la cadena fija "571617"; aquí se usa el
+ *   mismo valor para que el backend, que lo valida, acepte las tramas.
  * - Unidad de temperatura: PENDIENTE DE CONFIRMAR (aquí se envían valores
  *   que equivalen a grados Celsius).
  * - Los valores siguen un vuelo simulado (ascenso ~35 s hasta 1000 m,
@@ -22,6 +22,9 @@
 // Debe coincidir con SERIAL_BAUDRATE del backend.
 const unsigned long BAUDRATE = 115200;
 const unsigned long INTERVAL_MS = 1000;
+
+// Mismo valor que `String pass` del receptor real (y que FRAME_PASS del backend).
+const char *PASS_VALUE = "571617";
 
 // true: cada 10 tramas envía una corrupta, y cada 25 una con "nan" en la
 // temperatura. Sirve para comprobar que el backend las descarta sin caerse.
@@ -66,11 +69,11 @@ void loop() {
   if (INJECT_BAD_FRAMES && t % 25 == 0) temp = NAN;
 
   char msg2[128];
-  snprintf(msg2, sizeof(msg2), "TEST%lu,%.2f,%.0f,%.2f,%.1f,%.1f,%.1f,%.0f,%.1f",
-           t, temp, co2, pres, alt, acc, vel, rssi, snr);
+  snprintf(msg2, sizeof(msg2), "%s,%.2f,%.0f,%.2f,%.1f,%.1f,%.1f,%.0f,%.1f",
+           PASS_VALUE, temp, co2, pres, alt, acc, vel, rssi, snr);
 
   if (INJECT_BAD_FRAMES && t % 10 == 0) {
-    snprintf(msg2, sizeof(msg2), "TEST%lu,solo,tres,campos", t);
+    snprintf(msg2, sizeof(msg2), "%s,solo,tres,campos", PASS_VALUE);
   }
 
   Serial.println(msg2);

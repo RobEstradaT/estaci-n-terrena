@@ -82,9 +82,9 @@ puerto nuevo es el tuyo.
 
 ### 2. Averigua el baudrate
 
-El baudrate **no está confirmado en `PROTOCOL.md`** y el sistema no lo asume.
-Búscalo en el código del ESP32: es el número de `Serial.begin(...)` (115200 es
-muy común, pero verifica el tuyo).
+El baudrate del receptor está **confirmado: 115200** (`Serial.begin(115200)` en su
+código; ver `PROTOCOL.md`). El sistema no lo asume: siempre se indica con
+`SERIAL_BAUDRATE`. Si cambias el firmware, usa el valor de su `Serial.begin(...)`.
 
 ### 3. Libera el puerto
 
@@ -138,6 +138,11 @@ y puede dejar el puerto ocupado unos segundos.
 En el log debe aparecer `puerto serial abierto: COM5 @ 115200 baud`. Si el ESP32
 no estaba listo, el backend reintenta cada segundo solo.
 
+**Espera unos 10 segundos antes de empezar:** al abrir el puerto, muchas placas ESP32
+se reinician y el receptor tarda ~10 s en configurar el módulo LoRa (`setup()`);
+durante ese tiempo no reenvía tramas. Ver unas líneas de arranque descartadas en
+el log es normal.
+
 ### 6. Arranca el frontend
 
 ```bash
@@ -184,7 +189,8 @@ cada prueba importante.
 |---|---|---|
 | `TELEMETRY_SOURCE` | `simulator` o `serial` | `simulator` |
 | `SERIAL_PORT` | Puerto (obligatoria si `serial`) | — |
-| `SERIAL_BAUDRATE` | Baudrate (obligatoria si `serial`) | — |
+| `SERIAL_BAUDRATE` | Baudrate (obligatoria si `serial`; el receptor usa 115200) | — |
+| `FRAME_PASS` | Valor esperado del campo `pass`; las tramas con otro valor se descartan. Vacío = no validar | `571617` |
 | `DATABASE_PATH` | Ruta del archivo SQLite | `backend/data/cansat.db` |
 
 ## Pruebas automáticas (sin hardware)
@@ -203,6 +209,7 @@ python -m unittest discover -s tests -v
 | Todas las tramas `[FALLA]` con caracteres `�` | Baudrate distinto al de `Serial.begin` | Corrige `SERIAL_BAUDRATE` |
 | No llega ninguna línea | ESP32 sin transmitir, cable solo de carga, o el receptor LoRa no recibe del CanSat | Revisa cable, alimenta el CanSat, mira el Monitor Serie del IDE (luego ciérralo) |
 | "se esperaban 9 campos" | El formato de `msg2` difiere de `PROTOCOL.md` | Compara con `pass,v1,v2,v3,v4,v5,v6,rssi,snr` |
+| "pass inválido" | El primer campo no es el esperado | Revisa `String pass` del firmware, o define `FRAME_PASS` (vacío = no validar) |
 | "campo ... no numérico" / "no finito" | Texto, coma decimal, o `nan`/`inf` del sensor | Corrige en el firmware; el backend descarta esa trama |
 | Líneas basura solo al inicio | Algunas placas se reinician al abrir el puerto y escriben su log de arranque | Normal; el backend las descarta |
 | "TELEMETRY_SOURCE=serial requiere SERIAL_PORT y SERIAL_BAUDRATE" | Faltan variables | Defínelas en la misma terminal |
@@ -213,7 +220,7 @@ python -m unittest discover -s tests -v
 ## Limitaciones conocidas (PENDIENTE DE CONFIRMAR)
 
 - **Unidad de temperatura:** el sistema la trata y rotula como °C, pero no está confirmada.
-- **Campo `pass`:** se ignora; su algoritmo no está definido. No hay checksum ni CRC.
+- **Campo `pass`:** es una cadena fija (`571617`, confirmada en el firmware del receptor) y el backend la valida. No hay checksum ni CRC.
 - **Tipo y precisión** de cada campo: se aceptan como `float`.
 - **`sequence` y `mission_time_s`** no se reinician al iniciar misión (Inc. 7).
 - **Fase de misión** (ASCENSO, DESCENSO...): se infiere en el frontend; el CanSat no la transmite.
