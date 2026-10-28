@@ -1,17 +1,17 @@
-# Estación Terrena CanSat — Incrementos 0 a 6
+# Estación Terrena CanSat
 
-Estación terrena para recibir, validar, guardar y visualizar la telemetría de un
-CanSat. Flujo completo:
+Estación terrena para recibir, validar, guardar, visualizar y analizar la telemetría de un CanSat. Flujo completo:
 
 ```
 CanSat → LoRa → receptor LoRa → ESP32 → UART/USB → backend Python
        → validación → WebSocket → React (en vivo)
                     → SQLite (si hay misión activa) → CSV
+                    → análisis histórico por misión (React)
 ```
 
 ## Estado
 
-| Incremento | Estado |
+| Desarrollo previo (incrementos) | Estado |
 |---|---|
 | 0 Preparación | Completado |
 | 1 Simulador + procesamiento | Completado |
@@ -20,7 +20,14 @@ CanSat → LoRa → receptor LoRa → ESP32 → UART/USB → backend Python
 | 4 Gráficas en vivo | Completado |
 | 5 UART real (`SerialESP32`) | Implementado; falta la prueba con el ESP32 físico |
 | 6 Persistencia en SQLite + exportación CSV | Completado |
-| 7-9 Históricos, alertas, pruebas finales | Pendientes |
+
+| Prototipos | Estado |
+|---|---|
+| 1 Análisis histórico | Implementado; pendiente de evaluación |
+| 2 Alertas y diagnóstico | Pendiente |
+| 3 Pruebas finales y refinamiento | Pendiente |
+
+El avance y los criterios de evaluación están en `docs/DEVELOPMENT_PLAN.md`.
 
 ## Requisitos
 
@@ -57,8 +64,7 @@ cd frontend
 npm run dev
 ```
 
-Abre `http://localhost:5173`. Verás un vuelo completo simulado (ascenso ~35 s,
-apogeo a 1000 m, descenso, aterrizaje). Reiniciar el backend repite el vuelo.
+Abre `http://localhost:5173`. Verás un vuelo completo simulado (ascenso ~35 s, apogeo a 1000 m, descenso, aterrizaje). Reiniciar el backend repite el vuelo.
 
 ## Modo B — ESP32 real, paso a paso
 
@@ -71,25 +77,19 @@ cd backend
 python -m serial.tools.list_ports -v
 ```
 
-- **Windows:** `COM3`, `COM5`... (también en Administrador de dispositivos → Puertos).
-  Ignora los "Enlace serie estándar" de Bluetooth: no son el ESP32.
-- **Linux:** `/dev/ttyUSB0` o `/dev/ttyACM0`. Si da "Permission denied":
-  `sudo usermod -aG dialout $USER` y vuelve a iniciar sesión.
+- **Windows:** `COM3`, `COM5`... (también en Administrador de dispositivos → Puertos). Ignora los "Enlace serie estándar" de Bluetooth: no son el ESP32.
+- **Linux:** `/dev/ttyUSB0` o `/dev/ttyACM0`. Si da "Permission denied": `sudo usermod -aG dialout $USER` y vuelve a iniciar sesión.
 - **macOS:** `/dev/cu.usbserial-*` o `/dev/cu.SLAB_USBtoUART`.
 
-Truco: ejecuta el comando con el ESP32 desconectado y otra vez conectado; el
-puerto nuevo es el tuyo.
+Truco: ejecuta el comando con el ESP32 desconectado y otra vez conectado; el puerto nuevo es el tuyo.
 
 ### 2. Averigua el baudrate
 
-El baudrate del receptor está **confirmado: 115200** (`Serial.begin(115200)` en su
-código; ver `PROTOCOL.md`). El sistema no lo asume: siempre se indica con
-`SERIAL_BAUDRATE`. Si cambias el firmware, usa el valor de su `Serial.begin(...)`.
+El baudrate del receptor está **confirmado: 115200** (`Serial.begin(115200)` en su código; ver `PROTOCOL.md`). El sistema no lo asume: siempre se indica con `SERIAL_BAUDRATE`. Si cambias el firmware, usa el valor de su `Serial.begin(...)`.
 
 ### 3. Libera el puerto
 
-Solo un programa puede usar el puerto a la vez. Cierra el Monitor Serie de
-Arduino IDE/PlatformIO y cualquier otro backend que esté corriendo.
+Solo un programa puede usar el puerto a la vez. Cierra el Monitor Serie de Arduino IDE/PlatformIO y cualquier otro backend que esté corriendo.
 
 ### 4. Prueba el enlace SIN levantar el sistema
 
@@ -98,9 +98,7 @@ cd backend
 python tools/check_serial.py COM5 115200
 ```
 
-(Sustituye puerto y baudrate.) Muestra cada trama como `[OK]` o `[FALLA]` con el
-motivo, y `AVISO` si algún valor sale de los rangos de sanidad. Lo esperado:
-varias líneas `[OK]` seguidas. Una falla en la primera línea es normal.
+(Sustituye puerto y baudrate.) Muestra cada trama como `[OK]` o `[FALLA]` con el motivo, y `AVISO` si algún valor sale de los rangos de sanidad. Lo esperado: varias líneas `[OK]` seguidas. Una falla en la primera línea es normal.
 
 No avances hasta ver `[OK]`. La sección "Solución de problemas" cubre los fallos.
 
@@ -132,16 +130,11 @@ export TELEMETRY_SOURCE=serial SERIAL_PORT=/dev/ttyUSB0 SERIAL_BAUDRATE=115200
 uvicorn app.main:app --port 8000
 ```
 
-Usa `uvicorn` **sin `--reload`** con hardware: el recargador reinicia el proceso
-y puede dejar el puerto ocupado unos segundos.
+Usa `uvicorn` **sin `--reload`** con hardware: el recargador reinicia el proceso y puede dejar el puerto ocupado unos segundos.
 
-En el log debe aparecer `puerto serial abierto: COM5 @ 115200 baud`. Si el ESP32
-no estaba listo, el backend reintenta cada segundo solo.
+En el log debe aparecer `puerto serial abierto: COM5 @ 115200 baud`. Si el ESP32 no estaba listo, el backend reintenta cada segundo solo.
 
-**Espera unos 10 segundos antes de empezar:** al abrir el puerto, muchas placas ESP32
-se reinician y el receptor tarda ~10 s en configurar el módulo LoRa (`setup()`);
-durante ese tiempo no reenvía tramas. Ver unas líneas de arranque descartadas en
-el log es normal.
+**Espera unos 10 segundos antes de empezar:** al abrir el puerto, muchas placas ESP32 se reinician y el receptor tarda ~10 s en configurar el módulo LoRa (`setup()`); durante ese tiempo no reenvía tramas. Ver unas líneas de arranque descartadas en el log es normal.
 
 ### 6. Arranca el frontend
 
@@ -154,12 +147,9 @@ Abre `http://localhost:5173`.
 
 ### 7. Comprueba que los datos son reales
 
-- `http://localhost:8000/api/status` debe mostrar `"source_type": "SerialESP32"` y
-  `"source_connected": true`.
+- `http://localhost:8000/api/status` debe mostrar `"source_type": "SerialESP32"` y `"source_connected": true`.
 - En el dashboard, el contador **Paquetes** debe subir con cada trama recibida.
-- **Ojo:** el indicador "ENLACE ACTIVO" del encabezado solo dice que el navegador
-  está conectado al backend. **No** indica que el CanSat esté transmitiendo. La
-  alerta de pérdida de señal llega en el Incremento 8.
+- **Ojo:** el indicador "ENLACE ACTIVO" del encabezado solo dice que el navegador está conectado al backend. **No** indica que el CanSat esté transmitiendo. La alerta de pérdida de señal está prevista en el Prototipo 2.
 
 ### 8. Graba una misión
 
@@ -169,9 +159,9 @@ Sin misión activa, los datos se ven pero **no se guardan**.
 2. El contador de muestras sube mientras graba.
 3. Tras el aterrizaje pulsa **Finalizar misión**.
 4. **Exportar CSV** descarga los datos (UTF-8 con BOM; abre bien en Excel).
+5. **Analizar** muestra duración, estadísticas por variable y gráficas de la misión (Prototipo 1).
 
-Los datos quedan en `backend/data/cansat.db`. Cópialo como respaldo después de
-cada prueba importante.
+Los datos quedan en `backend/data/cansat.db`. Cópialo como respaldo después de cada prueba importante.
 
 ### Lista rápida para un día de pruebas
 
@@ -181,7 +171,7 @@ cada prueba importante.
 4. Frontend abierto; "Paquetes" sube.
 5. **Nueva misión** antes del lanzamiento.
 6. **Finalizar misión** después del aterrizaje.
-7. Exportar CSV y respaldar `cansat.db`.
+7. Exportar CSV, revisar el análisis y respaldar `cansat.db`.
 
 ## Variables de entorno
 
@@ -201,6 +191,8 @@ source venv/bin/activate
 python -m unittest discover -s tests -v
 ```
 
+Las pruebas están en `backend/tests/`: `test_parse_frame.py` (parser UART), `test_database.py` (misiones, telemetría y CSV) y `test_history.py` (tiempo por misión, migración, estadísticas y series).
+
 ## Solución de problemas
 
 | Síntoma | Causa probable | Qué hacer |
@@ -216,15 +208,16 @@ python -m unittest discover -s tests -v
 | Dashboard con "ENLACE ACTIVO" pero valores en `--` | Backend sin tramas válidas | Mira el log del backend |
 | Muchos avisos "fuera de rango" | Los rangos de `processor.py` son orientativos | Ajusta `RANGES` (p. ej. altura si es sobre el nivel del mar) |
 | Misión con 0 muestras | No llegan tramas válidas | Revisa `/api/status` y el log |
+| Análisis muestra "--" en las estadísticas | La misión no tiene muestras válidas | Revisa que la misión haya recibido tramas (columna "Muestras") |
 
 ## Limitaciones conocidas (PENDIENTE DE CONFIRMAR)
 
 - **Unidad de temperatura:** el sistema la trata y rotula como °C, pero no está confirmada.
 - **Campo `pass`:** es una cadena fija (`571617`, confirmada en el firmware del receptor) y el backend la valida. No hay checksum ni CRC.
 - **Tipo y precisión** de cada campo: se aceptan como `float`.
-- **`sequence` y `mission_time_s`** no se reinician al iniciar misión (Inc. 7).
+- **Reloj "T. de misión" en vivo:** usa el tiempo de la fuente; el análisis histórico usa el tiempo relativo a la misión, así que el cero no coincide entre ambas vistas.
 - **Fase de misión** (ASCENSO, DESCENSO...): se infiere en el frontend; el CanSat no la transmite.
-- **Pérdida de enlace y alertas dedicadas:** Incremento 8.
+- **Pérdida de enlace y alertas dedicadas:** Prototipo 2.
 
 ## Estructura
 
@@ -233,7 +226,12 @@ backend/
   app/            main.py, database.py, exporter.py, connection_manager.py
   app/telemetry/  source.py, simulator.py, serial_esp32.py, processor.py, schema.py
   tools/          check_serial.py
-  tests/          test_parse_frame.py, test_database.py
-frontend/src/     App.jsx, components/, hooks/, utils/
-docs/             PROJECT_CONTEXT, ARCHITECTURE, PROTOCOL, PERSISTENCE, DEVELOPMENT_PLAN
+  tests/          test_parse_frame.py, test_database.py, test_history.py
+frontend/src/     App.jsx, api.js, App.css, index.css
+  components/     MissionPanel, MissionHistory, MissionHeader, AltitudeHero,
+                  InstrumentGrid, InstrumentCard, TelemetryCharts (+ CSS)
+  hooks/          useTelemetrySocket, useMissions, useMissionHistory
+  utils/          missionPhase
+docs/             PROJECT_CONTEXT, ARCHITECTURE, PROTOCOL, PERSISTENCE,
+                  PRUEBA_SERIAL, DEVELOPMENT_PLAN
 ```

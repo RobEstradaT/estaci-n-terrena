@@ -1,0 +1,86 @@
+/* Análisis histórico de una misión (Prototipo 1). Usa los tokens de index.css. */
+
+.mission-history {
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid var(--line);
+}
+
+.mission-history__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.mission-history__header h2 {
+  margin: 4px 0 0;
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.mission-history__status,
+.mission-history__note {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin: 0 0 12px;
+}
+
+.mission-history__error {
+  margin: 0 0 12px;
+  font-size: 14px;
+  color: var(--status-critical);
+}
+
+.mission-history__summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.mission-history__stat {
+  background: var(--bg-void);
+  border: 1px solid var(--line-soft);
+  border-radius: 2px;
+  padding: 12px 14px;
+}
+
+.mission-history__stat .value {
+  font-family: var(--font-mono);
+  font-size: 20px;
+}
+
+.mission-history__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+  margin-bottom: 20px;
+}
+
+.mission-history__table th,
+.mission-history__table td {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--line-soft);
+  text-align: right;
+}
+
+.mission-history__table th:first-child,
+.mission-history__table td:first-child {
+  text-align: left;
+}
+
+.mission-history__table th {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+.mission-history__table td {
+  font-family: var(--font-mono);
+}
+
+.mission-history__table td:first-child {
+  font-family: var(--font-display);
+}

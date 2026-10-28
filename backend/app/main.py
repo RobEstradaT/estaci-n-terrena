@@ -1,11 +1,10 @@
 """
 Backend de la Estación Terrena CanSat.
 
-Incrementos cubiertos por este archivo:
-- Incremento 1: fuente simulada + procesamiento inicial.
-- Incremento 2: FastAPI + WebSocket en tiempo real.
-- Incremento 5: selección de fuente Simulator | SerialESP32.
-- Incremento 6: misiones, guardado en SQLite y exportación a CSV.
+Módulos cubiertos:
+- Desarrollo previo: fuente simulada o serial, WebSocket, misiones y CSV
+  (Incrementos 1, 2, 5 y 6).
+- Prototipo 1: análisis histórico por misión (serie para gráficas y estadísticas).
 
 Ejecutar con:
     uvicorn app.main:app --reload --port 8000
@@ -26,6 +25,8 @@ Endpoints:
 - POST /api/missions                    -> inicia una misión (empieza a guardar)
 - POST /api/missions/{id}/end           -> finaliza la misión (deja de guardar)
 - GET  /api/missions/{id}/export.csv    -> descarga los datos de la misión en CSV
+- GET  /api/missions/{id}/telemetry     -> serie para gráficas (?max_points=1000)
+- GET  /api/missions/{id}/stats         -> estadísticas básicas de la misión
 """
 
 import asyncio
@@ -33,7 +34,7 @@ import logging
 import os
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, HTTPException, Query, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
@@ -248,6 +249,30 @@ async def export_mission_csv(mission_id: int):
         media_type="text/csv; charset=utf-8",
         headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )
+
+
+# ---------------------------------------------------------------------------
+# Análisis histórico (Prototipo 1)
+# ---------------------------------------------------------------------------
+
+
+@app.get("/api/missions/{mission_id}/telemetry")
+async def get_mission_telemetry(
+    mission_id: int,
+    max_points: int = Query(default=1000, ge=10, le=5000),
+):
+    try:
+        return await asyncio.to_thread(db.fetch_series, mission_id, max_points)
+    except MissionNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@app.get("/api/missions/{mission_id}/stats")
+async def get_mission_stats(mission_id: int):
+    try:
+        return await asyncio.to_thread(db.mission_stats, mission_id)
+    except MissionNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
 @app.websocket("/ws/telemetry")

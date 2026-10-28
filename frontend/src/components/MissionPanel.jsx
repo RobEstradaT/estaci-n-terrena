@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { missionExportUrl, useMissions } from "../hooks/useMissions";
+import MissionHistory from "./MissionHistory";
 import "./MissionPanel.css";
 
 const RECENT_LIMIT = 8;
@@ -18,6 +19,7 @@ function sampleLabel(count) {
 export default function MissionPanel() {
   const { missions, active, error, busy, start, end } = useMissions();
   const [name, setName] = useState("");
+  const [analyzedId, setAnalyzedId] = useState(null);
 
   async function handleStart(event) {
     event.preventDefault();
@@ -27,6 +29,7 @@ export default function MissionPanel() {
   }
 
   const finished = missions.filter((m) => m.ended_at !== null).slice(0, RECENT_LIMIT);
+  const analyzed = missions.find((m) => m.id === analyzedId && m.ended_at !== null) ?? null;
 
   return (
     <section className="mission-panel" aria-label="Misiones">
@@ -97,12 +100,30 @@ export default function MissionPanel() {
               <span className="mission-list__meta mono">
                 {sampleLabel(mission.sample_count)}
               </span>
-              <a className="mission-list__export" href={missionExportUrl(mission.id)}>
-                Exportar CSV
-              </a>
+              <div className="mission-list__actions">
+                <button
+                  type="button"
+                  className="mission-list__analyze"
+                  aria-pressed={analyzedId === mission.id}
+                  onClick={() => setAnalyzedId(mission.id)}
+                >
+                  Analizar
+                </button>
+                <a className="mission-list__export" href={missionExportUrl(mission.id)}>
+                  Exportar CSV
+                </a>
+              </div>
             </li>
           ))}
         </ul>
+      )}
+
+      {analyzed && (
+        <MissionHistory
+          key={analyzed.id}
+          mission={analyzed}
+          onClose={() => setAnalyzedId(null)}
+        />
       )}
     </section>
   );

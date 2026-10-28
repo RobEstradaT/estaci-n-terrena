@@ -1,29 +1,10 @@
 import { useCallback, useEffect, useState } from "react";
+import { API_URL, errorMessage, request } from "../api";
 
-const API_URL = "http://localhost:8000";
 const POLL_WHILE_RECORDING_MS = 3000;
 
 export function missionExportUrl(missionId) {
   return `${API_URL}/api/missions/${missionId}/export.csv`;
-}
-
-function errorMessage(err) {
-  return err instanceof TypeError ? "No se pudo conectar con el backend." : err.message;
-}
-
-async function request(path, options) {
-  const response = await fetch(`${API_URL}${path}`, options);
-  if (!response.ok) {
-    let message = `Error ${response.status}`;
-    try {
-      const body = await response.json();
-      if (typeof body.detail === "string") message = body.detail;
-    } catch {
-      // La respuesta no traía JSON; se queda el mensaje genérico.
-    }
-    throw new Error(message);
-  }
-  return response.json();
 }
 
 /**

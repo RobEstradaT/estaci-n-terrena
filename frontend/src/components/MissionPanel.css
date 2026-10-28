@@ -145,3 +145,36 @@
     grid-column: 1 / -1;
   }
 }
+
+/* ---------- Acciones de cada misión (Prototipo 1) ---------- */
+
+.mission-list__actions {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  white-space: nowrap;
+}
+
+.mission-list__analyze {
+  padding: 0;
+  background: none;
+  border: none;
+  border-bottom: 1px solid transparent;
+  color: var(--text-primary);
+  font: inherit;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.mission-list__analyze:hover {
+  border-bottom-color: var(--accent-signal);
+}
+
+.mission-list__analyze[aria-pressed="true"] {
+  color: var(--accent-signal);
+}
+
+.mission-list__analyze:focus-visible {
+  outline: 2px solid var(--accent-signal);
+  outline-offset: 2px;
+}
