@@ -27,7 +27,7 @@ pass,value1,value2,value3,value4,value5,value6,rssi,snr
 | Posición | Variable | Unidad | Estado |
 |---|---|---|---|
 | p0 | pass (identificador de trama) | N/A | Confirmada: cadena fija `571617` (código del receptor) |
-| p1 | Temperatura | PENDIENTE | Confirmada (variable); unidad PENDIENTE |
+| p1 | Temperatura | °C | Confirmada |
 | p2 | Concentración de CO2 | ppm | Confirmada |
 | p3 | Presión atmosférica | kPa | Confirmada |
 | p4 | Altura | m | Confirmada |
@@ -54,8 +54,7 @@ PENDIENTE DE CONFIRMAR:
 
 ### Sobre la unidad de Temperatura (p1)
 
-Confirmado: existe una variable de temperatura en la posición p1.
-PENDIENTE DE CONFIRMAR: su unidad (no asumir Celsius, Fahrenheit ni Kelvin).
+Confirmada: la temperatura se transmite en grados Celsius (°C).
 
 ## Formato de trama
 
@@ -65,6 +64,7 @@ PENDIENTE DE CONFIRMAR: su unidad (no asumir Celsius, Fahrenheit ni Kelvin).
 | Terminador | CONFIRMADA — `\n` (vía `Serial.println`) |
 | Encabezado adicional (antes de `pass`) | CONFIRMADA — no existe; `pass` es el primer campo de la trama |
 | Número de campos | CONFIRMADA — 9 (`pass` + 6 valores + `rssi` + `snr`) |
+| Unidad de temperatura | CONFIRMADA — °C |
 | Tipo de dato de cada campo (texto/entero/flotante, precisión, decimales) | PENDIENTE |
 | Checksum | PENDIENTE |
 | CRC | PENDIENTE |
@@ -94,7 +94,7 @@ Esta actualización proviene de información confirmada por el usuario sobre
 el código fuente real del ESP32 (uso de `Serial.println(msg2)` con `msg2`
 en el formato `pass,value1,value2,value3,value4,value5,value6,rssi,snr`).
 
-El baudrate, el valor de `pass` y la estructura del receptor provienen del
+El baudrate, el valor de `pass`, la unidad de temperatura y la estructura del receptor provienen del
 código completo del receptor compartido por el usuario.
 
 ## Regla

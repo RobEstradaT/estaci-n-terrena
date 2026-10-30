@@ -25,6 +25,7 @@ Endpoints:
 - POST /api/missions                    -> inicia una misión (empieza a guardar)
 - POST /api/missions/{id}/end           -> finaliza la misión (deja de guardar)
 - GET  /api/missions/{id}/export.csv    -> descarga los datos de la misión en CSV
+- GET  /api/missions/{id}/export.json   -> descarga los datos de la misión en JSON
 - GET  /api/missions/{id}/telemetry     -> serie para gráficas (?max_points=1000)
 - GET  /api/missions/{id}/stats         -> estadísticas básicas de la misión
 """
@@ -46,7 +47,7 @@ from .database import (
     MissionNotFoundError,
     MissionStateError,
 )
-from .exporter import csv_chunks, export_filename
+from .exporter import csv_chunks, export_filename, json_chunks
 from .telemetry.processor import process
 from .telemetry.serial_esp32 import DEFAULT_FRAME_PASS, SerialESP32
 from .telemetry.simulator import Simulator
@@ -247,6 +248,20 @@ async def export_mission_csv(mission_id: int):
     return StreamingResponse(
         csv_chunks(db, mission_id),
         media_type="text/csv; charset=utf-8",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
+@app.get("/api/missions/{mission_id}/export.json")
+async def export_mission_json(mission_id: int):
+    try:
+        mission = await asyncio.to_thread(db.get_mission, mission_id)
+    except MissionNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    filename = export_filename(mission, "json")
+    return StreamingResponse(
+        json_chunks(db, mission),
+        media_type="application/json; charset=utf-8",
         headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )
 

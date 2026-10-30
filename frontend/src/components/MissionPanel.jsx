@@ -109,9 +109,22 @@ export default function MissionPanel() {
                 >
                   Analizar
                 </button>
-                <a className="mission-list__export" href={missionExportUrl(mission.id)}>
-                  Exportar CSV
-                </a>
+                <div className="mission-list__exports">
+                  <a
+                    className="mission-list__export"
+                    href={missionExportUrl(mission.id, "csv")}
+                    aria-label={`Exportar ${mission.name} en CSV`}
+                  >
+                    CSV
+                  </a>
+                  <a
+                    className="mission-list__export"
+                    href={missionExportUrl(mission.id, "json")}
+                    aria-label={`Exportar ${mission.name} en JSON`}
+                  >
+                    JSON
+                  </a>
+                </div>
               </div>
             </li>
           ))}

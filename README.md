@@ -5,7 +5,7 @@ Estación terrena para recibir, validar, guardar, visualizar y analizar la telem
 ```
 CanSat → LoRa → receptor LoRa → ESP32 → UART/USB → backend Python
        → validación → WebSocket → React (en vivo)
-                    → SQLite (si hay misión activa) → CSV
+                    → SQLite (si hay misión activa) → CSV / JSON
                     → análisis histórico por misión (React)
 ```
 
@@ -19,7 +19,7 @@ CanSat → LoRa → receptor LoRa → ESP32 → UART/USB → backend Python
 | 3 Dashboard | Completado |
 | 4 Gráficas en vivo | Completado |
 | 5 UART real (`SerialESP32`) | Implementado; falta la prueba con el ESP32 físico |
-| 6 Persistencia en SQLite + exportación CSV | Completado |
+| 6 Persistencia en SQLite + exportación CSV y JSON | Completado |
 
 | Prototipos | Estado |
 |---|---|
@@ -158,7 +158,7 @@ Sin misión activa, los datos se ven pero **no se guardan**.
 1. Escribe un nombre en el panel "Misión" y pulsa **Nueva misión** poco antes del lanzamiento.
 2. El contador de muestras sube mientras graba.
 3. Tras el aterrizaje pulsa **Finalizar misión**.
-4. **Exportar CSV** descarga los datos (UTF-8 con BOM; abre bien en Excel).
+4. **Exportar CSV** o **JSON** descarga los datos (el CSV tiene BOM UTF-8 y abre bien en Excel).
 5. **Analizar** muestra duración, estadísticas por variable y gráficas de la misión (Prototipo 1).
 
 Los datos quedan en `backend/data/cansat.db`. Cópialo como respaldo después de cada prueba importante.
@@ -171,7 +171,7 @@ Los datos quedan en `backend/data/cansat.db`. Cópialo como respaldo después de
 4. Frontend abierto; "Paquetes" sube.
 5. **Nueva misión** antes del lanzamiento.
 6. **Finalizar misión** después del aterrizaje.
-7. Exportar CSV, revisar el análisis y respaldar `cansat.db`.
+7. Exportar CSV o JSON y respaldar `cansat.db`, y revisar el análisis.
 
 ## Variables de entorno
 
@@ -191,7 +191,7 @@ source venv/bin/activate
 python -m unittest discover -s tests -v
 ```
 
-Las pruebas están en `backend/tests/`: `test_parse_frame.py` (parser UART), `test_database.py` (misiones, telemetría y CSV) y `test_history.py` (tiempo por misión, migración, estadísticas y series).
+Las pruebas están en `backend/tests/`: `test_parse_frame.py` (parser UART), `test_database.py` (misiones, telemetría, CSV y JSON) y `test_history.py` (tiempo por misión, migración, estadísticas y series).
 
 ## Solución de problemas
 
@@ -212,7 +212,6 @@ Las pruebas están en `backend/tests/`: `test_parse_frame.py` (parser UART), `te
 
 ## Limitaciones conocidas (PENDIENTE DE CONFIRMAR)
 
-- **Unidad de temperatura:** el sistema la trata y rotula como °C, pero no está confirmada.
 - **Campo `pass`:** es una cadena fija (`571617`, confirmada en el firmware del receptor) y el backend la valida. No hay checksum ni CRC.
 - **Tipo y precisión** de cada campo: se aceptan como `float`.
 - **Reloj "T. de misión" en vivo:** usa el tiempo de la fuente; el análisis histórico usa el tiempo relativo a la misión, así que el cero no coincide entre ambas vistas.

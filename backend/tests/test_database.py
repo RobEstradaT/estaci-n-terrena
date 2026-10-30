@@ -1,7 +1,8 @@
-"""Pruebas de persistencia SQLite y exportación CSV (Incremento 6)."""
+"""Pruebas de persistencia SQLite y exportación CSV y JSON (Incremento 6)."""
 
 import csv
 import io
+import json
 import sys
 import tempfile
 import unittest
@@ -14,7 +15,7 @@ from app.database import (  # noqa: E402
     MissionNotFoundError,
     MissionStateError,
 )
-from app.exporter import CSV_COLUMNS, csv_chunks, export_filename  # noqa: E402
+from app.exporter import CSV_COLUMNS, csv_chunks, export_filename, json_chunks  # noqa: E402
 
 
 def make_record(sequence: int = 1, **overrides) -> dict:
@@ -210,6 +211,47 @@ class ExportTests(DatabaseTestCase):
         self.assertEqual(export_filename({"id": 7, "name": "???"}), "mision_7.csv")
         self.assertEqual(
             export_filename({"id": 1, "name": 'a/b\\c"d'}), "mision_1_a-b-c-d.csv"
+        )
+
+
+class JsonExportTests(DatabaseTestCase):
+    def _export(self, mission_id: int, batch_size: int = 1000) -> dict:
+        mission = self.db.get_mission(mission_id)
+        return json.loads("".join(json_chunks(self.db, mission, batch_size)))
+
+    def test_json_contains_mission_and_typed_telemetry(self):
+        mission = self.db.create_mission("A")
+        warnings = ["altitude_m=3500 fuera de rango esperado [0.0, 3000.0]"]
+        self.db.insert_telemetry(mission["id"], make_record(1))
+        self.db.insert_telemetry(
+            mission["id"], make_record(2, valid=False, warnings=warnings)
+        )
+        doc = self._export(mission["id"])
+        self.assertEqual(doc["mission"]["name"], "A")
+        self.assertEqual(doc["mission"]["sample_count"], 2)
+        self.assertEqual([r["sequence"] for r in doc["telemetry"]], [1, 2])
+        self.assertEqual(doc["telemetry"][0]["altitude_m"], 101.0)
+        self.assertIs(doc["telemetry"][0]["valid"], True)
+        self.assertIs(doc["telemetry"][1]["valid"], False)
+        self.assertEqual(doc["telemetry"][1]["warnings"], warnings)
+
+    def test_json_spans_batches_without_losing_or_duplicating_rows(self):
+        mission = self.db.create_mission("A")
+        for i in range(1, 8):
+            self.db.insert_telemetry(mission["id"], make_record(i))
+        doc = self._export(mission["id"], batch_size=3)
+        self.assertEqual([r["sequence"] for r in doc["telemetry"]], list(range(1, 8)))
+
+    def test_empty_mission_gives_empty_telemetry_list(self):
+        mission = self.db.create_mission("A")
+        doc = self._export(mission["id"])
+        self.assertEqual(doc["telemetry"], [])
+        self.assertEqual(doc["mission"]["id"], mission["id"])
+
+    def test_json_filename_uses_json_extension(self):
+        self.assertEqual(
+            export_filename({"id": 3, "name": "Prueba"}, "json"),
+            "mision_3_prueba.json",
         )
 
 

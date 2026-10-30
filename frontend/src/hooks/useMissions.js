@@ -3,8 +3,8 @@ import { API_URL, errorMessage, request } from "../api";
 
 const POLL_WHILE_RECORDING_MS = 3000;
 
-export function missionExportUrl(missionId) {
-  return `${API_URL}/api/missions/${missionId}/export.csv`;
+export function missionExportUrl(missionId, format = "csv") {
+  return `${API_URL}/api/missions/${missionId}/export.${format}`;
 }
 
 /**

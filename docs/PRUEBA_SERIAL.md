@@ -13,7 +13,7 @@ entorno virtual (ver `README.md`, Modo B).
 | **B. ESP32 real** | Ya tienes el receptor LoRa y el CanSat transmitiendo | El firmware real, que ejecuta `Serial.println(msg2)` |
 
 El caso A prueba **el software** (puerto, parser, backend, dashboard, base de
-datos, CSV). No prueba el enlace LoRa ni el firmware real.
+datos, CSV y JSON). No prueba el enlace LoRa ni el firmware real.
 
 ## 1. Preparación (una vez)
 
@@ -54,7 +54,7 @@ Ejecútalas en orden; no avances si una falla (la sección 5 ayuda a diagnostica
 | P6 | Fidelidad de valores (caso A) | Deja correr ~40 s | Altitud llega a 1000 m hacia los 35 s; temperatura baja a ~15.5 en el apogeo; presión ~90 kPa |
 | P7 | Tramas inválidas | En el sketch pon `INJECT_BAD_FRAMES = true`, vuelve a subirlo (cerrando el Monitor Serie) | El backend y el dashboard siguen funcionando; el log muestra `trama inválida descartada` (~1 de cada 10); **Paquetes** solo cuenta las válidas |
 | P8 | Desconexión y reconexión | Desconecta el USB y vuelve a conectarlo **en el mismo puerto físico** | `source_connected` pasa a `false` y vuelve a `true` solo, sin reiniciar el backend |
-| P9 | Misión y CSV | **Nueva misión**, espera 60 s, **Finalizar misión**, **Exportar CSV** y ábrelo en Excel | Muestras ≈ 60; acentos correctos; una fila por muestra |
+| P9 | Misión y exportación | **Nueva misión**, espera 60 s, **Finalizar misión**, **Exportar CSV** y **JSON**; abre el CSV en Excel y valida el JSON con un editor de texto | Muestras ≈ 60; acentos correctos; una fila por muestra en el CSV; el JSON tiene las claves `mission` y `telemetry` |
 | P10 | Estabilidad | Un vuelo completo del sketch (190 s) o 10 min de transmisión | Sin errores en el log; `sequence` continuo, sin saltos |
 | P11 | `pass` incorrecto (prueba negativa) | Arranca el backend con `$env:FRAME_PASS = "000000"` | Todas las tramas se descartan con `pass inválido`; **Paquetes** no sube. Sin la variable (o con `571617`) vuelve a funcionar |
 
@@ -98,8 +98,8 @@ Más casos en `README.md`, "Solución de problemas".
 
 ## 6. Qué no cubre esta prueba
 
-- La unidad de temperatura y el tipo/precisión de los campos siguen
-  **PENDIENTES DE CONFIRMAR** (`PROTOCOL.md`).
+- El tipo y la precisión de los campos siguen **PENDIENTES DE CONFIRMAR**
+  (`PROTOCOL.md`).
 - No valida el enlace LoRa ni el alcance (~1 km).
 - Las pruebas con el sketch no sustituyen una prueba con el firmware real.
 

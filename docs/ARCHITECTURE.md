@@ -93,7 +93,7 @@ La fuente activa se elige con la variable de entorno `TELEMETRY_SOURCE` (`simula
 
 Cada fuente declara en `poll_interval_s` cuánto debe esperar el ciclo del backend entre lecturas: el `Simulator` marca su propio ritmo (1 s) y `SerialESP32` usa 0, porque su `read()` ya bloquea hasta que llega una trama real.
 
-Protocolo confirmado (ver `PROTOCOL.md`): la trama del ESP32 es una línea de texto ASCII terminada en `\n` (enviada mediante `Serial.println`), con campos separados por comas. `SerialESP32` lee el puerto serial línea por línea (`readline()`) y `parse_frame` traduce la línea a `TelemetryReading`. Se rechazan las tramas con un número de campos distinto de 9 o con valores no numéricos o no finitos (`nan`, `inf`). El tipo de dato de cada campo, la unidad de temperatura y la validación de `pass` siguen PENDIENTES DE CONFIRMAR.
+Protocolo confirmado (ver `PROTOCOL.md`): la trama del ESP32 es una línea de texto ASCII terminada en `\n` (enviada mediante `Serial.println`), con campos separados por comas. `SerialESP32` lee el puerto serial línea por línea (`readline()`) y `parse_frame` traduce la línea a `TelemetryReading`. Se rechazan las tramas con un número de campos distinto de 9 o con valores no numéricos o no finitos (`nan`, `inf`). El tipo de dato de cada campo sigue PENDIENTE DE CONFIRMAR. La cadena fija de `pass` (571617) está confirmada; su algoritmo de generación sigue pendiente.
 
 ## 4. Comunicación backend/frontend
 
@@ -103,7 +103,7 @@ Para misiones, consultas y exportación se utiliza una API HTTP mediante FastAPI
 
 ## 5. Base de datos
 
-SQLite se usa para almacenamiento local (`backend/data/cansat.db`). La telemetría se guarda solo mientras hay una misión activa. El esquema, las reglas de funcionamiento y la exportación a CSV están documentados en `PERSISTENCE.md`.
+SQLite se usa para almacenamiento local (`backend/data/cansat.db`). La telemetría se guarda solo mientras hay una misión activa. El esquema, las reglas de funcionamiento y la exportación a CSV y JSON están documentados en `PERSISTENCE.md`.
 
 ## 6. Estado de la arquitectura
 

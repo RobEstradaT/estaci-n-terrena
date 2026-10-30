@@ -178,3 +178,10 @@
   outline: 2px solid var(--accent-signal);
   outline-offset: 2px;
 }
+
+/* ---------- Exportación CSV / JSON (Incremento 6) ---------- */
+
+.mission-list__exports {
+  display: flex;
+  gap: 12px;
+}

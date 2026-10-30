@@ -75,7 +75,7 @@ detalle completo y lo que sigue pendiente):
 
 - p0 (`pass`) → identificador de trama (función confirmada; su
   generación y validación siguen **PENDIENTES DE CONFIRMAR**)
-- p1 (`value1`) → Temperatura (unidad **PENDIENTE DE CONFIRMAR**)
+- p1 (`value1`) → Temperatura (°C)
 - p2 (`value2`) → CO2 (ppm)
 - p3 (`value3`) → Presión atmosférica (kPa)
 - p4 (`value4`) → Altura (m)
@@ -88,7 +88,7 @@ Esta correspondencia reemplaza cualquier mapeo anterior mencionado en
 versiones previas de este documento (p. ej. una asociación provisional de
 p0/p1/p2 con RSSI/SNR/Temperatura), la cual era PROVISIONAL.
 
-IMPORTANTE: no inventar el algoritmo de `pass`, la unidad de temperatura,
+IMPORTANTE: no inventar el algoritmo de `pass`,
 el tipo de dato/precisión de cada valor, checksum ni CRC. Cuando esta
 información no esté confirmada, marcarla como pendiente (ver `PROTOCOL.md`).
 

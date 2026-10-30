@@ -32,7 +32,7 @@ DEFAULT_FRAME_PASS = "571617"
 
 # Índices confirmados: pass,value1..value6,rssi,snr
 IDX_PASS = 0
-IDX_TEMPERATURE = 1  # unidad pendiente de confirmar
+IDX_TEMPERATURE = 1  # °C
 IDX_CO2_PPM = 2
 IDX_PRESSURE_KPA = 3
 IDX_ALTITUDE_M = 4
@@ -101,7 +101,7 @@ def parse_frame(
             f"se recibió {fields[IDX_PASS].strip()!r}"
         )
 
-    # unidad pendiente de confirmar
+    # temperatura en °C
     temperature = _parse_float(fields[IDX_TEMPERATURE], "temperature")
     co2_ppm = _parse_float(fields[IDX_CO2_PPM], "co2_ppm")
     pressure_kpa = _parse_float(fields[IDX_PRESSURE_KPA], "pressure_kpa")

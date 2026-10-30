@@ -3,9 +3,9 @@ Modelo de datos de telemetría procesada.
 
 IMPORTANTE (ver PROTOCOL.md):
 El protocolo real de la ESP32 ya se confirmó parcialmente: el orden de
-campos, el separador (coma), el terminador (`\\n`) y las unidades de la
-mayoría de las variables están CONFIRMADOS. Siguen PENDIENTES DE CONFIRMAR
-el algoritmo de `pass`, la unidad de temperatura, y el tipo de dato/
+campos, el separador (coma), el terminador (`\\n`) y las unidades de todas
+las variables, incluida la temperatura en °C, están CONFIRMADAS. Siguen
+PENDIENTES DE CONFIRMAR el algoritmo de `pass` y el tipo de dato/
 precisión de cada campo (además de checksum/CRC, que no existen en el
 protocolo conocido).
 
