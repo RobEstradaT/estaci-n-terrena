@@ -5,6 +5,10 @@ Fuente de telemetría UART real (Incremento 5).
 `SerialESP32` solo abre el puerto, lee línea por línea y delega el
 parseo; no conoce el orden de campos (ver ARCHITECTURE.md sección 3 y
 PROTOCOL.md).
+
+Prototipo 2: además lleva contadores de diagnóstico (tramas válidas,
+descartadas, desconexiones, último error) que expone `diagnostics()` para
+el motor de alertas y la interfaz.
 """
 
 from __future__ import annotations
@@ -32,7 +36,7 @@ DEFAULT_FRAME_PASS = "571617"
 
 # Índices confirmados: pass,value1..value6,rssi,snr
 IDX_PASS = 0
-IDX_TEMPERATURE = 1  # °C
+IDX_TEMPERATURE = 1  # unidad pendiente de confirmar
 IDX_CO2_PPM = 2
 IDX_PRESSURE_KPA = 3
 IDX_ALTITUDE_M = 4
@@ -101,7 +105,7 @@ def parse_frame(
             f"se recibió {fields[IDX_PASS].strip()!r}"
         )
 
-    # temperatura en °C
+    # unidad pendiente de confirmar
     temperature = _parse_float(fields[IDX_TEMPERATURE], "temperature")
     co2_ppm = _parse_float(fields[IDX_CO2_PPM], "co2_ppm")
     pressure_kpa = _parse_float(fields[IDX_PRESSURE_KPA], "pressure_kpa")
@@ -165,8 +169,24 @@ class SerialESP32(TelemetrySource):
         self._sequence = 0
         self._mission_t0: float | None = None
 
+        # Contadores de diagnóstico (Prototipo 2).
+        self._frames_discarded = 0
+        self._disconnects = 0
+        self._last_error: str | None = None
+
     def is_connected(self) -> bool:
         return self._connected and self._serial is not None and self._serial.is_open
+
+    def diagnostics(self) -> dict:
+        """Contadores para el motor de alertas y la interfaz."""
+        return {
+            "port": self._port,
+            "baudrate": self._baudrate,
+            "frames_ok": self._sequence,
+            "frames_discarded": self._frames_discarded,
+            "disconnects": self._disconnects,
+            "last_error": self._last_error,
+        }
 
     def close(self) -> None:
         if self._serial is not None:
@@ -193,6 +213,7 @@ class SerialESP32(TelemetrySource):
         except (SerialException, OSError) as exc:
             self._connected = False
             self._serial = None
+            self._last_error = f"puerto no disponible: {exc}"
             logger.warning("puerto serial no disponible (%s): %s", self._port, exc)
             return False
 
@@ -207,6 +228,8 @@ class SerialESP32(TelemetrySource):
 
     def _mark_disconnected(self, exc: Exception) -> None:
         self._connected = False
+        self._disconnects += 1
+        self._last_error = f"desconexión: {exc}"
         logger.warning("desconexión serial (%s): %s", self._port, exc)
         try:
             if self._serial is not None:
@@ -251,6 +274,8 @@ class SerialESP32(TelemetrySource):
             try:
                 parsed = parse_frame(raw_line, expected_pass=self._expected_pass)
             except InvalidFrameError as exc:
+                self._frames_discarded += 1
+                self._last_error = f"trama descartada: {exc}"
                 logger.warning("trama inválida descartada: %s | crudo=%r", exc, raw_line)
                 continue
 

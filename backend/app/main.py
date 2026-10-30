@@ -5,6 +5,8 @@ Módulos cubiertos:
 - Desarrollo previo: fuente simulada o serial, WebSocket, misiones y CSV
   (Incrementos 1, 2, 5 y 6).
 - Prototipo 1: análisis histórico por misión (serie para gráficas y estadísticas).
+- Prototipo 2: alertas y diagnóstico (señal débil, pérdida de enlace, datos
+  inválidos, errores seriales); ver app/alerts.py y docs/ALERTS.md.
 
 Ejecutar con:
     uvicorn app.main:app --reload --port 8000
@@ -17,15 +19,22 @@ Fuente activa (sin comentar código):
 Base de datos (opcional):
     DATABASE_PATH=ruta/al/archivo.db   (predeterminado: backend/data/cansat.db)
 
+Umbrales de alertas (opcionales; ver docs/ALERTS.md):
+    ALERT_LINK_TIMEOUT_S, ALERT_RSSI_WARN_DBM, ALERT_RSSI_CRIT_DBM,
+    ALERT_SNR_WARN_DB, ALERT_HYSTERESIS_DB, ALERT_INVALID_CONSECUTIVE,
+    ALERT_DISCARD_WINDOW_S, ALERT_DISCARD_COUNT
+
 Endpoints:
-- WS   /ws/telemetry                    -> stream de telemetría procesada en tiempo real
+- WS   /ws/telemetry                    -> lecturas en tiempo real y, cada segundo,
+                                           un mensaje {"type": "alerts", ...}
 - GET  /api/status                      -> estado general del sistema y de la fuente
 - GET  /api/telemetry/latest            -> última lectura procesada (o null si no hay)
+- GET  /api/alerts                      -> alertas activas, estado del enlace y eventos
+- GET  /api/alerts/config               -> umbrales de alertas en uso
 - GET  /api/missions                    -> misiones guardadas (la más reciente primero)
 - POST /api/missions                    -> inicia una misión (empieza a guardar)
 - POST /api/missions/{id}/end           -> finaliza la misión (deja de guardar)
 - GET  /api/missions/{id}/export.csv    -> descarga los datos de la misión en CSV
-- GET  /api/missions/{id}/export.json   -> descarga los datos de la misión en JSON
 - GET  /api/missions/{id}/telemetry     -> serie para gráficas (?max_points=1000)
 - GET  /api/missions/{id}/stats         -> estadísticas básicas de la misión
 """
@@ -33,6 +42,7 @@ Endpoints:
 import asyncio
 import logging
 import os
+import time
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException, Query, WebSocket, WebSocketDisconnect
@@ -40,6 +50,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
+from .alerts import AlertConfig, AlertEngine
 from .connection_manager import ConnectionManager
 from .database import (
     DEFAULT_DB_PATH,
@@ -47,7 +58,7 @@ from .database import (
     MissionNotFoundError,
     MissionStateError,
 )
-from .exporter import csv_chunks, export_filename, json_chunks
+from .exporter import csv_chunks, export_filename
 from .telemetry.processor import process
 from .telemetry.serial_esp32 import DEFAULT_FRAME_PASS, SerialESP32
 from .telemetry.simulator import Simulator
@@ -62,6 +73,11 @@ TELEMETRY_INTERVAL_S = 1.0
 # Espera tras un error inesperado en el ciclo, para no entrar en un bucle
 # a toda velocidad si algo falla de forma repetida.
 ERROR_RETRY_DELAY_S = 1.0
+
+# Cada cuánto se evalúan y difunden las alertas que no dependen de que llegue
+# una lectura (pérdida de enlace, puerto serial). Define la latencia máxima
+# extra con la que aparece una alerta de pérdida de enlace.
+ALERT_TICK_S = 1.0
 
 manager = ConnectionManager()
 latest_reading: dict | None = None
@@ -101,8 +117,23 @@ def create_source() -> TelemetrySource:
     )
 
 
+def create_alert_engine() -> AlertEngine:
+    """Crea el motor de alertas con los umbrales de las variables ALERT_*."""
+    try:
+        config = AlertConfig.from_env()
+    except ValueError as exc:
+        raise RuntimeError(f"Configuración de alertas inválida: {exc}") from exc
+    return AlertEngine(config)
+
+
 source = create_source()
 db = Database(os.environ.get("DATABASE_PATH") or DEFAULT_DB_PATH)
+alert_engine = create_alert_engine()
+
+
+def alerts_message() -> dict:
+    """Estado actual de las alertas, listo para enviarse por WebSocket o REST."""
+    return alert_engine.snapshot(time.monotonic())
 
 
 async def telemetry_loop() -> None:
@@ -124,6 +155,9 @@ async def telemetry_loop() -> None:
             processed = process(reading)
             latest_reading = processed.to_dict()
             latest_reading["source_connected"] = source.is_connected()
+
+            # Prototipo 2: cada lectura válida de formato alimenta las alertas.
+            alert_engine.on_reading(latest_reading, time.monotonic())
 
             if manager.client_count > 0:
                 await manager.broadcast(latest_reading)
@@ -148,6 +182,25 @@ async def telemetry_loop() -> None:
         await asyncio.sleep(source.poll_interval_s)
 
 
+async def alerts_loop() -> None:
+    """
+    Tarea de fondo (Prototipo 2): cada `ALERT_TICK_S` evalúa las alertas que
+    no dependen de que llegue una lectura (pérdida de enlace, puerto serial,
+    tramas descartadas) y difunde el estado a los clientes conectados.
+    Un fallo aquí se registra y no afecta a la telemetría en vivo.
+    """
+    while True:
+        try:
+            alert_engine.tick(
+                time.monotonic(), source.is_connected(), source.diagnostics()
+            )
+            if manager.client_count > 0:
+                await manager.broadcast(alerts_message())
+        except Exception:
+            logging.exception("error en el ciclo de alertas; se reintenta")
+        await asyncio.sleep(ALERT_TICK_S)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     closed = await asyncio.to_thread(db.close_orphan_missions)
@@ -157,9 +210,13 @@ async def lifespan(app: FastAPI):
             "apagado inesperado",
             closed,
         )
-    task = asyncio.create_task(telemetry_loop())
+    tasks = [
+        asyncio.create_task(telemetry_loop()),
+        asyncio.create_task(alerts_loop()),
+    ]
     yield
-    task.cancel()
+    for task in tasks:
+        task.cancel()
     close = getattr(source, "close", None)
     if callable(close):
         close()
@@ -185,12 +242,28 @@ async def get_status():
         "connected_clients": manager.client_count,
         "telemetry_interval_s": TELEMETRY_INTERVAL_S,
         "active_mission_id": active_mission_id,
+        "link": alert_engine.link_state(),
     }
 
 
 @app.get("/api/telemetry/latest")
 async def get_latest_telemetry():
     return latest_reading
+
+
+# ---------------------------------------------------------------------------
+# Alertas y diagnóstico (Prototipo 2)
+# ---------------------------------------------------------------------------
+
+
+@app.get("/api/alerts")
+async def get_alerts():
+    return alerts_message()
+
+
+@app.get("/api/alerts/config")
+async def get_alerts_config():
+    return alert_engine.config.to_dict()
 
 
 # ---------------------------------------------------------------------------
@@ -252,20 +325,6 @@ async def export_mission_csv(mission_id: int):
     )
 
 
-@app.get("/api/missions/{mission_id}/export.json")
-async def export_mission_json(mission_id: int):
-    try:
-        mission = await asyncio.to_thread(db.get_mission, mission_id)
-    except MissionNotFoundError as exc:
-        raise HTTPException(status_code=404, detail=str(exc)) from exc
-    filename = export_filename(mission, "json")
-    return StreamingResponse(
-        json_chunks(db, mission),
-        media_type="application/json; charset=utf-8",
-        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
-    )
-
-
 # ---------------------------------------------------------------------------
 # Análisis histórico (Prototipo 1)
 # ---------------------------------------------------------------------------
@@ -295,9 +354,11 @@ async def telemetry_ws(websocket: WebSocket):
     await manager.connect(websocket)
     try:
         # Al conectar, si ya hay una lectura reciente, se envía de inmediato
-        # para que el frontend no espere hasta el siguiente ciclo.
+        # para que el frontend no espere hasta el siguiente ciclo. Lo mismo
+        # con el estado de las alertas.
         if latest_reading is not None:
             await websocket.send_json(latest_reading)
+        await websocket.send_json(alerts_message())
 
         while True:
             # No se espera nada del cliente; se mantiene la conexión viva.

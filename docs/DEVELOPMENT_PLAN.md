@@ -111,14 +111,48 @@ Estado: IMPLEMENTADO, PENDIENTE DE EVALUACIÓN
 
 ## Prototipo 2 — Alertas y diagnóstico (antes "Incremento 8")
 
-Estado: PENDIENTE
+Estado: IMPLEMENTADO, PENDIENTE DE EVALUACIÓN
 
-Objetivo preliminar: detectar y mostrar señal débil, pérdida de comunicación, datos inválidos, errores seriales y otras condiciones relevantes.
+**Objetivo:** que el operador sepa, sin interpretar números, cuándo el enlace con el CanSat se degrada o se pierde y cuándo la recepción tiene problemas. Detectar y mostrar señal débil, pérdida de comunicación, datos inválidos y errores seriales, con umbrales configurables y justificados.
 
-- La pérdida de comunicación no está cubierta hoy: el indicador "ENLACE ACTIVO" solo refleja la conexión navegador-backend, no la recepción de tramas.
-- Los umbrales deberán ser configurables y estar técnicamente justificados.
+**Alcance implementado:**
 
-Los criterios de evaluación se definirán antes de implementarse.
+- Motor de alertas independiente (`backend/app/alerts.py`) con histéresis en RSSI/SNR, estado "en espera" antes de la primera trama y registro de eventos (activada/resuelta).
+- Alertas: `WEAK_RSSI` (aviso y crítica), `LOW_SNR`, `LINK_LOST`, `INVALID_DATA`, `SERIAL_UNAVAILABLE` y `FRAME_ERRORS`.
+- Umbrales configurables por variables de entorno `ALERT_*`, validados al arrancar. Valores por omisión PROVISIONALES (ver `ALERTS.md`).
+- Contadores de diagnóstico en `SerialESP32` (`diagnostics()`): tramas válidas, descartadas, desconexiones y último error.
+- Un mensaje `{"type": "alerts"}` por el WebSocket cada segundo, más `GET /api/alerts` y `GET /api/alerts/config`.
+- Frontend: indicador "TRAMAS" en el encabezado (distinto de "ENLACE ACTIVO") y `AlertPanel` con alertas activas, diagnóstico y eventos recientes.
+- Cambio en `processor.py`: la señal débil ya no vuelve inválida una lectura; se evalúa solo en el motor de alertas.
+- Pruebas automáticas en `backend/tests/test_alerts.py`; pruebas manuales M1–M6 en `ALERTS.md`.
+
+**Criterios de evaluación:**
+
+| ID | Criterio | Cómo se evalúa |
+|---|---|---|
+| A1 | RSSI ≤ umbral de aviso genera `WEAK_RSSI` (aviso); ≤ umbral crítico, crítica. Una señal que oscila dentro del margen de histéresis no activa ni resuelve la alerta repetidamente. | Automática |
+| A2 | Sin tramas válidas durante más de `ALERT_LINK_TIMEOUT_S` s se activa `LINK_LOST` (crítica) y se resuelve al llegar una trama. Antes de la primera trama el estado es "en espera" y no hay alerta. | Automática y manual (M2, M3) |
+| A3 | Tras `ALERT_INVALID_CONSECUTIVE` lecturas inválidas seguidas se activa `INVALID_DATA`; una lectura válida la resuelve. Una señal débil por sí sola no vuelve inválida la lectura. | Automática |
+| A4 | Un puerto serial no disponible o desconectado activa `SERIAL_UNAVAILABLE`; las tramas descartadas frecuentes activan `FRAME_ERRORS`; los contadores de diagnóstico reflejan tramas válidas, descartadas y desconexiones. | Automática y manual (M2, M4; P7 y P8 de `PRUEBA_SERIAL.md`) |
+| A5 | Los umbrales se cambian con variables de entorno sin tocar el código; un valor inválido impide el arranque con un mensaje que nombra la variable. | Automática y manual (M6) |
+| A6 | La interfaz muestra alertas activas, estado de las tramas y eventos recientes, se actualiza sin recargar, y al perder la conexión con el backend no deja alertas obsoletas. | Manual (M1, M5) |
+| A7 | Sin regresión: la vista en vivo, las gráficas, las misiones, el CSV y el análisis funcionan igual que antes, y todas las pruebas automáticas existentes siguen pasando. | Automática y manual (P9 de `PRUEBA_SERIAL.md`, C6) |
+| A8 | La pérdida de enlace aparece en pantalla en un máximo de `ALERT_LINK_TIMEOUT_S` + 1 s. | Manual (M2) |
+
+**Registro de evaluación:**
+
+| Criterio | Fecha | Resultado | Observaciones |
+|---|---|---|---|
+| A1 | | | |
+| A2 | | | |
+| A3 | | | |
+| A4 | | | |
+| A5 | | | |
+| A6 | | | |
+| A7 | | | |
+| A8 | | | |
+
+**Pendientes (fuera de este prototipo):** confirmar parámetros LoRa (SF, ancho de banda) y frecuencia de transmisión del CanSat para fijar los umbrales definitivos **[PENDIENTE DE CONFIRMAR]**; guardar las alertas por misión en SQLite; notificaciones sonoras.
 
 ## Prototipo 3 — Pruebas finales y refinamiento (antes "Incremento 9")
 

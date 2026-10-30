@@ -10,9 +10,13 @@ qué hacer con ellos.
 Los rangos usados aquí son límites de sanidad orientativos (para detectar
 errores evidentes de lectura o transmisión), no especificaciones oficiales
 de los sensores del CanSat.
+
+La señal débil (RSSI/SNR bajos) NO se evalúa aquí: es responsabilidad del
+motor de alertas (`app/alerts.py`, Prototipo 2), que usa umbrales
+configurables con histéresis. Un RSSI bajo pero dentro del rango físico no
+vuelve inválida la lectura.
 """
 
-from dataclasses import dataclass
 from .schema import TelemetryReading, ProcessedTelemetry
 
 RANGES = {
@@ -36,11 +40,6 @@ def process(reading: TelemetryReading) -> ProcessedTelemetry:
             warnings.append(
                 f"{field_name}={value} fuera de rango esperado [{low}, {high}]"
             )
-
-    # Señal débil: advertencia específica y accionable (ver Incremento 8,
-    # aquí solo se detecta el caso más básico como parte de "procesamiento").
-    if reading.rssi_dbm <= -110.0:
-        warnings.append("Señal RSSI muy débil, posible pérdida de enlace inminente")
 
     valid = len(warnings) == 0
 

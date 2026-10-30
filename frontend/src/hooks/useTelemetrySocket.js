@@ -8,10 +8,17 @@ const RECONNECT_DELAY_MS = 2000;
  * Se conecta al WebSocket de telemetría del backend, mantiene la última
  * lectura y un historial acotado (para las gráficas del Incremento 4),
  * y reintenta la conexión si el backend no está disponible o se cae.
+ *
+ * Prototipo 2: el mismo WebSocket también trae, cada segundo, un mensaje
+ * `{ type: "alerts", ... }` con alertas activas, estado del enlace y
+ * diagnóstico. Ese mensaje no es una lectura: se guarda aparte y no entra
+ * en `latest` ni en `history`. Si se pierde la conexión con el backend,
+ * `alerts` vuelve a null para no mostrar un estado obsoleto.
  */
 export function useTelemetrySocket() {
   const [latest, setLatest] = useState(null);
   const [history, setHistory] = useState([]);
+  const [alerts, setAlerts] = useState(null);
   const [connectionState, setConnectionState] = useState("connecting"); // connecting | open | closed
 
   const socketRef = useRef(null);
@@ -35,6 +42,12 @@ export function useTelemetrySocket() {
       socket.onmessage = (event) => {
         if (cancelled) return;
         const data = JSON.parse(event.data);
+
+        if (data.type === "alerts") {
+          setAlerts(data);
+          return;
+        }
+
         setLatest(data);
         setHistory((prev) => {
           const next = [...prev, data];
@@ -47,6 +60,7 @@ export function useTelemetrySocket() {
       socket.onclose = () => {
         if (cancelled) return;
         setConnectionState("closed");
+        setAlerts(null);
         reconnectTimeoutRef.current = setTimeout(connect, RECONNECT_DELAY_MS);
       };
 
@@ -64,5 +78,5 @@ export function useTelemetrySocket() {
     };
   }, []);
 
-  return { latest, history, connectionState };
+  return { latest, history, alerts, connectionState };
 }

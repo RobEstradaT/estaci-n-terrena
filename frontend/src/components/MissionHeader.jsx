@@ -15,7 +15,24 @@ const CONNECTION_LABEL = {
   closed: "SIN ENLACE",
 };
 
-export default function MissionHeader({ connectionState, latest }) {
+// Estado de las tramas del CanSat (Prototipo 2). Es distinto de la conexión
+// navegador-backend: "ENLACE ACTIVO" no dice nada sobre el CanSat.
+// Reutiliza las variantes de color de `connection-pill`.
+const LINK_LABEL = {
+  ok: "TRAMAS: ACTIVAS",
+  lost: "TRAMAS: PERDIDAS",
+  waiting: "TRAMAS: EN ESPERA",
+};
+const LINK_TONE = {
+  ok: "open",
+  lost: "closed",
+  waiting: "connecting",
+};
+
+export default function MissionHeader({ connectionState, latest, link }) {
+  // Sin conexión con el backend no hay información del enlace con el CanSat.
+  const linkKey = connectionState === "open" && link ? link : null;
+
   return (
     <header className="mission-header">
       <div className="mission-header__title">
@@ -33,6 +50,12 @@ export default function MissionHeader({ connectionState, latest }) {
         <div className="mission-header__stat">
           <span className="label">Paquetes</span>
           <span className="value mono">{latest?.sequence ?? "--"}</span>
+        </div>
+        <div
+          className={`connection-pill connection-pill--${linkKey ? LINK_TONE[linkKey] : "connecting"}`}
+        >
+          <span className="connection-pill__dot" />
+          {linkKey ? LINK_LABEL[linkKey] : "TRAMAS: --"}
         </div>
         <div className={`connection-pill connection-pill--${connectionState}`}>
           <span className="connection-pill__dot" />

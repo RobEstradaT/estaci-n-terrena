@@ -35,3 +35,12 @@ class TelemetrySource(ABC):
     def is_connected(self) -> bool:
         """Indica si la fuente está actualmente recibiendo datos."""
         raise NotImplementedError
+
+    def diagnostics(self) -> dict:
+        """
+        Contadores de diagnóstico de la fuente (Prototipo 2). Las claves que
+        reconoce el motor de alertas son `frames_discarded`; el resto se
+        muestra tal cual en la interfaz. Una fuente sin diagnóstico (el
+        Simulator) devuelve un diccionario vacío.
+        """
+        return {}
