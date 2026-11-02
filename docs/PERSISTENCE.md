@@ -1,11 +1,11 @@
-# Persistencia, exportación y análisis histórico (Incremento 6 y Prototipo 1)
+# Persistencia, exportación y análisis histórico (Prototipo 6 y Prototipo 7)
 
 ## Alcance
 
 - Almacenamiento de telemetría procesada en SQLite, organizada por **misión**.
 - Una misión se inicia y se finaliza **manualmente** desde la GUI ("Nueva misión" / "Finalizar misión").
 - Exportación de los datos de una misión a **CSV** y a **JSON**.
-- Análisis histórico de una misión finalizada: duración, muestras, estadísticas básicas y gráficas (Prototipo 1).
+- Análisis histórico de una misión finalizada: duración, muestras, estadísticas básicas y gráficas (Prototipo 7).
 
 Fuera de este alcance (pendiente en prototipos posteriores): filtros por rango de tiempo, comparación entre misiones, eliminación de misiones y estadísticas por fase de vuelo.
 

@@ -1,12 +1,12 @@
 """
-Fuente de telemetría UART real (Incremento 5).
+Fuente de telemetría UART real (Prototipo 5).
 
 `parse_frame` traduce una línea ASCII del ESP32 a `TelemetryReading`.
 `SerialESP32` solo abre el puerto, lee línea por línea y delega el
 parseo; no conoce el orden de campos (ver ARCHITECTURE.md sección 3 y
 PROTOCOL.md).
 
-Prototipo 2: además lleva contadores de diagnóstico (tramas válidas,
+Prototipo 8: además lleva contadores de diagnóstico (tramas válidas,
 descartadas, desconexiones, último error) que expone `diagnostics()` para
 el motor de alertas y la interfaz.
 """
@@ -169,7 +169,7 @@ class SerialESP32(TelemetrySource):
         self._sequence = 0
         self._mission_t0: float | None = None
 
-        # Contadores de diagnóstico (Prototipo 2).
+        # Contadores de diagnóstico (Prototipo 8).
         self._frames_discarded = 0
         self._disconnects = 0
         self._last_error: str | None = None

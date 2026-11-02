@@ -1,5 +1,5 @@
 """
-Fuente de datos simulada (Incremento 1).
+Fuente de datos simulada (Prototipo 1).
 
 Genera telemetría sintética que sigue un perfil de vuelo aproximado
 (ascenso, apogeo, descenso bajo paracaídas, aterrizaje) para poder

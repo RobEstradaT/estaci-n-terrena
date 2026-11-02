@@ -15,7 +15,7 @@ const CONNECTION_LABEL = {
   closed: "SIN ENLACE",
 };
 
-// Estado de las tramas del CanSat (Prototipo 2). Es distinto de la conexión
+// Estado de las tramas del CanSat (Prototipo 8). Es distinto de la conexión
 // navegador-backend: "ENLACE ACTIVO" no dice nada sobre el CanSat.
 // Reutiliza las variantes de color de `connection-pill`.
 const LINK_LABEL = {

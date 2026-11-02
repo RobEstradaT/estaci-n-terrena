@@ -18,7 +18,7 @@ function DiagnosticItem({ label, value }) {
 }
 
 /**
- * Alertas activas, eventos recientes y diagnóstico de la fuente (Prototipo 2).
+ * Alertas activas, eventos recientes y diagnóstico de la fuente (Prototipo 8).
  * Toda la información llega del backend en el mensaje `type: "alerts"`.
  */
 export default function AlertPanel({ alerts }) {

@@ -1,5 +1,5 @@
 """
-Procesamiento y validación básica de telemetría (Incremento 1).
+Procesamiento y validación básica de telemetría (Prototipo 1).
 
 Responsabilidad: recibir una TelemetryReading ya estructurada (venga de
 Simulator o, en el futuro, de SerialESP32) y determinar si sus valores
@@ -12,7 +12,7 @@ errores evidentes de lectura o transmisión), no especificaciones oficiales
 de los sensores del CanSat.
 
 La señal débil (RSSI/SNR bajos) NO se evalúa aquí: es responsabilidad del
-motor de alertas (`app/alerts.py`, Prototipo 2), que usa umbrales
+motor de alertas (`app/alerts.py`, Prototipo 8), que usa umbrales
 configurables con histéresis. Un RSSI bajo pero dentro del rango físico no
 vuelve inválida la lectura.
 """

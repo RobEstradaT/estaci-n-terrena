@@ -148,18 +148,18 @@ La arquitectura debe permitir realizar este cambio sin tener que rehacer el fron
 
 ## 8. Principio de desarrollo
 
-El proyecto se desarrollará incrementalmente.
+El proyecto se desarrolla mediante prototipado: cada prototipo es una versión funcional y demostrable del sistema.
 
-Cada incremento debe producir una parte funcional y comprobable del sistema.
+Cada prototipo debe producir una parte funcional y comprobable del sistema, con un objetivo y criterios de evaluación definidos antes de implementarse.
 
 No desarrollar toda la aplicación de una sola vez.
 
-No avanzar automáticamente al siguiente incremento.
+No avanzar automáticamente al siguiente prototipo.
 
-Cada incremento debe:
+Cada prototipo debe:
 
 1. Explicar brevemente qué se realizará.
-2. Implementar únicamente lo correspondiente a ese incremento.
+2. Implementar únicamente lo correspondiente a ese prototipo.
 3. Probar lo desarrollado.
 4. Indicar cómo ejecutarlo.
 5. Indicar qué se consiguió.

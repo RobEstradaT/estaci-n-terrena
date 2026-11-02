@@ -5,7 +5,7 @@ Toda fuente de telemetría (simulada o real) debe implementar esta interfaz
 para que el resto del backend (procesamiento, WebSocket, persistencia) no
 dependa de si los datos vienen de un `Simulator` o de `SerialESP32`.
 
-`SerialESP32` (Incremento 5) lee UART línea por línea y usa `parse_frame`
+`SerialESP32` (Prototipo 5) lee UART línea por línea y usa `parse_frame`
 para traducir la trama confirmada en PROTOCOL.md a `TelemetryReading`.
 """
 
@@ -38,7 +38,7 @@ class TelemetrySource(ABC):
 
     def diagnostics(self) -> dict:
         """
-        Contadores de diagnóstico de la fuente (Prototipo 2). Las claves que
+        Contadores de diagnóstico de la fuente (Prototipo 8). Las claves que
         reconoce el motor de alertas son `frames_discarded`; el resto se
         muestra tal cual en la interfaz. Una fuente sin diagnóstico (el
         Simulator) devuelve un diccionario vacío.

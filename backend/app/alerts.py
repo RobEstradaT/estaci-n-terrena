@@ -1,5 +1,5 @@
 """
-Alertas y diagnóstico (Prototipo 2).
+Alertas y diagnóstico (Prototipo 8).
 
 Responsabilidad: a partir de las lecturas procesadas y del estado de la
 fuente de datos, decidir qué alertas están activas, registrar cuándo se

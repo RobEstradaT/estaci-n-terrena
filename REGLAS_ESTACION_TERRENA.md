@@ -40,17 +40,16 @@ qué cambios quedan pendientes. Los hallazgos se reflejan en la documentación
 * Los prototipos pueden repetirse o refinarse a partir de la evaluación. Un prototipo
 no se da por cerrado si sus pruebas fallan o si su objetivo no se cumplió; en ese
 caso se documenta el motivo y se decide cómo seguir.
-* Estado de avance: el trabajo ya hecho se conserva en la numeración de
-`DEVELOPMENT\\\_PLAN.md` como registro (Fase 0 a Fase 6 de desarrollo previo). Los
-prototipos nuevos se definen con su objetivo antes de implementarse.
+* Estado de avance (registro en `docs/DEVELOPMENT_PLAN.md`):
 
-  * Desarrollo previo completado: preparación, simulador y procesamiento, comunicación
-en tiempo real, dashboard, gráficas en vivo y persistencia con exportación CSV.
-  * Comunicación UART real (`SerialESP32`): implementada y probada con puerto virtual.
-Pendiente la prueba con ESP32 físico (ver `docs/PRUEBA\\\_SERIAL.md`).
-  * Prototipo 1 (análisis histórico/consulta por misión) y Prototipo 2 (alertas y
-diagnóstico): implementados, pendientes de evaluación (criterios en `DEVELOPMENT\\\_PLAN.md`).
-  * Pendiente: Prototipo 3 (pruebas finales y refinamiento).
+  * Completados: Prototipo 1 (fuente simulada y procesamiento), 2 (comunicación en
+tiempo real), 3 (dashboard), 4 (gráficas en vivo) y 6 (persistencia con exportación
+CSV y JSON).
+  * Prototipo 5 (comunicación serial real, `SerialESP32`): implementado y probado con
+puerto virtual. Pendiente la prueba con ESP32 físico (ver `docs/PRUEBA_SERIAL.md`).
+  * Prototipos 7 (análisis histórico) y 8 (alertas y diagnóstico): implementados,
+pendientes de evaluación.
+  * Pendiente: Prototipo 9 (pruebas finales y refinamiento).
 
 ## 3\. Información no confirmada
 

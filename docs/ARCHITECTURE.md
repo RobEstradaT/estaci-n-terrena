@@ -95,7 +95,7 @@ La fuente activa se elige con la variable de entorno `TELEMETRY_SOURCE` (`simula
 
 Cada fuente declara en `poll_interval_s` cuánto debe esperar el ciclo del backend entre lecturas: el `Simulator` marca su propio ritmo (1 s) y `SerialESP32` usa 0, porque su `read()` ya bloquea hasta que llega una trama real.
 
-Además, cada fuente puede exponer contadores de diagnóstico mediante `diagnostics()` (Prototipo 2): `SerialESP32` informa de tramas válidas, descartadas, desconexiones y último error; el `Simulator` devuelve un diccionario vacío. El resto del sistema solo depende de esa interfaz.
+Además, cada fuente puede exponer contadores de diagnóstico mediante `diagnostics()` (Prototipo 8): `SerialESP32` informa de tramas válidas, descartadas, desconexiones y último error; el `Simulator` devuelve un diccionario vacío. El resto del sistema solo depende de esa interfaz.
 
 Protocolo confirmado (ver `PROTOCOL.md`): la trama del ESP32 es una línea de texto ASCII terminada en `\n` (enviada mediante `Serial.println`), con campos separados por comas. `SerialESP32` lee el puerto serial línea por línea (`readline()`) y `parse_frame` traduce la línea a `TelemetryReading`. Se rechazan las tramas con un número de campos distinto de 9, con `pass` distinto del esperado (`FRAME_PASS`) o con valores no numéricos o no finitos (`nan`, `inf`). El tipo de dato de cada campo, la unidad de temperatura (según `PROTOCOL.md`), checksum y CRC siguen PENDIENTES DE CONFIRMAR.
 

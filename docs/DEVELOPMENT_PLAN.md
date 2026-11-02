@@ -1,76 +1,90 @@
 # Plan de desarrollo por prototipos
 
-Este documento sustituye a `DEVELOPMENT_PLAN_actualizado.md`, que debe eliminarse del repositorio.
-
 ## Objetivo
 
-Construir progresivamente una estación terrena funcional para la recepción, procesamiento, visualización y análisis de telemetría CanSat.
+Construir progresivamente una estación terrena funcional para la recepción, procesamiento, visualización y consulta de telemetría CanSat.
 
 ## Metodología
 
-El proyecto se desarrolla por **prototipos** (ver `REGLAS_ESTACION_TERRENA.md`, sección 2). Cada prototipo es una versión funcional y demostrable, con un objetivo y criterios de evaluación definidos antes de implementarse.
+El proyecto se desarrolla por **prototipos** (ver `REGLAS_ESTACION_TERRENA.md`, sección 2 y capítulo 1, sección 1.2 de la tesis). Cada prototipo es una versión funcional y demostrable del sistema, con un objetivo y criterios de evaluación definidos antes de implementarse.
 
 - Un prototipo no se da por cerrado si sus pruebas fallan o si su objetivo no se cumplió. En ese caso se documenta el motivo y se decide cómo seguir.
 - Al terminar un prototipo se registran los resultados de su evaluación en este documento.
 - Se trabaja únicamente en el prototipo solicitado. Los siguientes no se implementan por iniciativa propia.
 
-La numeración de los prototipos es provisional hasta que se defina su alcance.
+Antes del Prototipo 1 se preparó la estructura del proyecto: `backend/` (FastAPI, paquete `telemetry`) y `frontend/` (React + Vite), con dependencias fijadas en `requirements.txt` y `package.json`.
 
-## Registro del desarrollo previo (metodología incremental, Incrementos 0–6)
+## Resumen
 
-Esta sección conserva el registro del trabajo realizado antes del cambio de metodología.
-
-### Incremento 0 — Preparación
-
-Estado: COMPLETADO
-
-Se creó la estructura `backend/` (FastAPI, paquete `telemetry`) y `frontend/` (React + Vite), con dependencias fijadas en `requirements.txt` y `package.json`.
-
-### Incremento 1 — Fuente de telemetría y backend
-
-Estado: COMPLETADO
-
-Se implementó `Simulator` (perfil de vuelo: ascenso suavizado ~35 s, apogeo a 1000 m, descenso bajo paracaídas a tasa constante, aterrizaje) detrás de la interfaz `TelemetrySource`, y `processor.py` con validación de rangos de sanidad y generación de advertencias.
-
-### Incremento 2 — Comunicación en tiempo real
-
-Estado: COMPLETADO
-
-FastAPI expone `/ws/telemetry` (WebSocket, difunde cada lectura procesada) y `/api/status` / `/api/telemetry/latest` (REST).
-
-### Incremento 3 — Dashboard
-
-Estado: COMPLETADO
-
-Interfaz en React con encabezado de misión (estado de enlace, reloj, contador de paquetes), hero de altitud/fase y tarjetas con los valores actuales de temperatura, presión, CO₂, aceleración total, RSSI y SNR. La tarjeta se resalta si el valor viene marcado con advertencia.
-
-### Incremento 4 — Gráficas en tiempo real
-
-Estado: COMPLETADO
-
-Gráficas en vivo (Recharts) de altitud, velocidad vertical, temperatura, presión, aceleración total, RSSI y SNR.
-
-Flujo verificado: datos simulados → backend → procesamiento → WebSocket → React → visualización.
-
-### Incremento 5 — Comunicación UART real
-
-Estado: IMPLEMENTADO, PENDIENTE DE PRUEBA CON ESP32 FÍSICO
-
-`SerialESP32` (`backend/app/telemetry/serial_esp32.py`) con `parse_frame` aislado. Formato confirmado en `PROTOCOL.md`: 9 campos separados por coma. La fuente activa se elige con `TELEMETRY_SOURCE=simulator|serial`; puerto y baudrate van por `SERIAL_PORT` y `SERIAL_BAUDRATE`.
-
-Probado con puerto virtual (`loop://` y puerto virtual del sistema operativo): parseo de tramas válidas e inválidas, descarte de tramas corruptas y con `nan`, y recuperación tras desconexión. El baudrate (115200) y el valor fijo de `pass` (`571617`) están confirmados en el código del receptor.
-
-Pendiente: prueba end-to-end con el ESP32 físico, siguiendo `docs/PRUEBA_SERIAL.md` (pruebas P1–P11).
-
-### Incremento 6 — Persistencia
-
-Estado: COMPLETADO
-
-SQLite organizado por misión (`database.py`): una misión activa a la vez (índice único parcial), inserción solo mientras la misión está activa y cierre de misiones huérfanas al arrancar. Exportación a CSV por bloques (`exporter.py`). En el frontend, `MissionPanel` y `useMissions` permiten iniciar, finalizar misiones y descargar el CSV. Documentación en `PERSISTENCE.md`; pruebas en `backend/tests/test_database.py`.
+| Prototipo | Objetivo | Estado |
+|---|---|---|
+| 1 | Fuente simulada y procesamiento | Completado |
+| 2 | Comunicación en tiempo real | Completado |
+| 3 | Dashboard | Completado |
+| 4 | Gráficas en tiempo real | Completado |
+| 5 | Comunicación serial real | Implementado, pendiente de prueba con ESP32 físico |
+| 6 | Persistencia y exportación | Completado |
+| 7 | Análisis histórico | Implementado, pendiente de evaluación |
+| 8 | Alertas y diagnóstico | Implementado, pendiente de evaluación |
+| 9 | Pruebas finales y refinamiento | Pendiente |
 
 ---
 
-## Prototipo 1 — Análisis histórico (antes "Incremento 7")
+## Prototipo 1 — Fuente simulada y procesamiento
+
+Estado: COMPLETADO
+
+**Objetivo:** generar telemetría sintética y validarla, para desarrollar y probar todo el recorrido de los datos sin depender del hardware.
+
+**Alcance implementado:** `Simulator` (perfil de vuelo: ascenso suavizado ~35 s, apogeo a 1000 m, descenso bajo paracaídas a tasa constante, aterrizaje) detrás de la interfaz `TelemetrySource`, y `processor.py` con validación de rangos de sanidad y generación de advertencias.
+
+## Prototipo 2 — Comunicación en tiempo real
+
+Estado: COMPLETADO
+
+**Objetivo:** enviar la telemetría procesada desde Python hacia React.
+
+**Alcance implementado:** FastAPI expone `/ws/telemetry` (WebSocket, difunde cada lectura procesada) y `/api/status` / `/api/telemetry/latest` (REST).
+
+## Prototipo 3 — Dashboard
+
+Estado: COMPLETADO
+
+**Objetivo:** crear la interfaz principal de la estación terrena.
+
+**Alcance implementado:** encabezado de misión (estado de enlace, reloj, contador de paquetes), indicador de altitud y fase, y tarjetas con los valores actuales de temperatura, presión, CO₂, aceleración total, RSSI y SNR. La tarjeta se resalta si el valor viene marcado con advertencia.
+
+## Prototipo 4 — Gráficas en tiempo real
+
+Estado: COMPLETADO
+
+**Objetivo:** representar las variables de telemetría mediante gráficas que se actualicen conforme llegan nuevos datos.
+
+**Alcance implementado:** gráficas en vivo (Recharts) de altitud, velocidad vertical, temperatura, presión, aceleración total, RSSI y SNR.
+
+Flujo verificado: datos simulados → backend → procesamiento → WebSocket → React → visualización.
+
+## Prototipo 5 — Comunicación serial real
+
+Estado: IMPLEMENTADO, PENDIENTE DE PRUEBA CON ESP32 FÍSICO
+
+**Objetivo:** sustituir la fuente simulada por la comunicación real con el ESP32 mediante puerto serial.
+
+**Alcance implementado:** `SerialESP32` (`backend/app/telemetry/serial_esp32.py`) con `parse_frame` aislado. Formato confirmado en `PROTOCOL.md`: 9 campos separados por coma. La fuente activa se elige con `TELEMETRY_SOURCE=simulator|serial`; puerto y baudrate van por `SERIAL_PORT` y `SERIAL_BAUDRATE`. El baudrate (115200) y el valor fijo de `pass` (`571617`) están confirmados en el código del receptor.
+
+**Probado:** parseo de tramas válidas e inválidas, descarte de tramas corruptas y con `nan`, y recuperación tras desconexión, con puerto virtual (`loop://` y puerto virtual del sistema operativo).
+
+**Pendiente:** prueba end-to-end con el ESP32 físico, siguiendo `docs/PRUEBA_SERIAL.md` (pruebas P1–P11). El prototipo pasa a COMPLETADO al registrar esos resultados.
+
+## Prototipo 6 — Persistencia y exportación
+
+Estado: COMPLETADO
+
+**Objetivo:** almacenar misiones y telemetría en SQLite y poder exportarlas.
+
+**Alcance implementado:** SQLite organizado por misión (`database.py`): una misión activa a la vez (índice único parcial), inserción solo mientras la misión está activa y cierre de misiones huérfanas al arrancar. Exportación a CSV y JSON por bloques (`exporter.py`). En el frontend, `MissionPanel` y `useMissions` permiten iniciar y finalizar misiones y descargar los datos. Documentación en `PERSISTENCE.md`; pruebas en `backend/tests/test_database.py`.
+
+## Prototipo 7 — Análisis histórico
 
 Estado: IMPLEMENTADO, PENDIENTE DE EVALUACIÓN
 
@@ -107,9 +121,7 @@ Estado: IMPLEMENTADO, PENDIENTE DE EVALUACIÓN
 
 **Pendientes (fuera de este prototipo):** filtro por rango de tiempo dentro de una misión; comparación entre dos misiones; reloj "T. de misión" de la vista en vivo relativo al inicio de la misión; eliminar misiones; estadísticas por fase de vuelo (requiere definir la fase, que hoy es solo visual).
 
----
-
-## Prototipo 2 — Alertas y diagnóstico (antes "Incremento 8")
+## Prototipo 8 — Alertas y diagnóstico
 
 Estado: IMPLEMENTADO, PENDIENTE DE EVALUACIÓN
 
@@ -154,7 +166,7 @@ Estado: IMPLEMENTADO, PENDIENTE DE EVALUACIÓN
 
 **Pendientes (fuera de este prototipo):** confirmar parámetros LoRa (SF, ancho de banda) y frecuencia de transmisión del CanSat para fijar los umbrales definitivos **[PENDIENTE DE CONFIRMAR]**; guardar las alertas por misión en SQLite; notificaciones sonoras.
 
-## Prototipo 3 — Pruebas finales y refinamiento (antes "Incremento 9")
+## Prototipo 9 — Pruebas finales y refinamiento
 
 Estado: PENDIENTE
 

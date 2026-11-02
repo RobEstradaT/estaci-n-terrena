@@ -8,7 +8,7 @@ export function missionExportUrl(missionId, format = "csv") {
 }
 
 /**
- * Misiones guardadas en el backend (Incremento 6): lista, inicio y cierre.
+ * Misiones guardadas en el backend (Prototipo 6): lista, inicio y cierre.
  * Mientras hay una misión grabando, refresca la lista para mostrar cuántas
  * muestras lleva guardadas.
  */

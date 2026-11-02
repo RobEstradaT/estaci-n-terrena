@@ -6,10 +6,10 @@ const RECONNECT_DELAY_MS = 2000;
 
 /**
  * Se conecta al WebSocket de telemetría del backend, mantiene la última
- * lectura y un historial acotado (para las gráficas del Incremento 4),
+ * lectura y un historial acotado (para las gráficas del Prototipo 4),
  * y reintenta la conexión si el backend no está disponible o se cae.
  *
- * Prototipo 2: el mismo WebSocket también trae, cada segundo, un mensaje
+ * Prototipo 8: el mismo WebSocket también trae, cada segundo, un mensaje
  * `{ type: "alerts", ... }` con alertas activas, estado del enlace y
  * diagnóstico. Ese mensaje no es una lectura: se guarda aparte y no entra
  * en `latest` ni en `history`. Si se pierde la conexión con el backend,

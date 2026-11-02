@@ -14,10 +14,10 @@ un `TelemetrySource` (simulado o real) ya entregó los valores; no
 representa la trama cruda del hardware. Los campos y unidades aquí ya
 coinciden con los confirmados en PROTOCOL.md (incluida `pressure_kpa` en
 kPa y la variable `acceleration_ms2`, que no estaba contemplada antes de
-confirmar el protocolo), para que el Incremento 5 (`SerialESP32`) solo
+confirmar el protocolo), para que el Prototipo 5 (`SerialESP32`) solo
 tenga que parsear texto a estos mismos campos, sin conversión de unidades.
 
-Cuando en el Incremento 5 se implemente `SerialESP32`, su responsabilidad
+Cuando en el Prototipo 5 se implemente `SerialESP32`, su responsabilidad
 será traducir la trama real (`pass,value1,...,value6,rssi,snr`) a esta
 misma estructura, de modo que el resto del sistema (procesamiento,
 WebSocket, frontend) no tenga que cambiar.
@@ -56,7 +56,7 @@ class TelemetryReading:
 class ProcessedTelemetry:
     """
     Resultado de pasar una TelemetryReading por el procesador
-    (Incremento 1): valida rangos y agrega el estado resultante.
+    (Prototipo 1): valida rangos y agrega el estado resultante.
     """
 
     reading: TelemetryReading

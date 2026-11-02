@@ -1,4 +1,4 @@
-"""Pruebas del parser UART (Incremento 5), sin depender de hardware."""
+"""Pruebas del parser UART (Prototipo 5), sin depender de hardware."""
 
 import asyncio
 import sys

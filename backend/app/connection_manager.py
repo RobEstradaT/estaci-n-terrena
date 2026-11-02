@@ -1,5 +1,5 @@
 """
-Gestor de conexiones WebSocket (Incremento 2).
+Gestor de conexiones WebSocket (Prototipo 2).
 
 Mantiene la lista de clientes frontend conectados y permite difundir
 (broadcast) la telemetría procesada a todos ellos en tiempo real.

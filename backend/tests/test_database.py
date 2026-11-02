@@ -1,4 +1,4 @@
-"""Pruebas de persistencia SQLite y exportación CSV y JSON (Incremento 6)."""
+"""Pruebas de persistencia SQLite y exportación CSV y JSON (Prototipo 6)."""
 
 import csv
 import io

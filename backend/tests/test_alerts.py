@@ -1,4 +1,4 @@
-"""Pruebas de alertas y diagnóstico (Prototipo 2), sin depender de hardware."""
+"""Pruebas de alertas y diagnóstico (Prototipo 8), sin depender de hardware."""
 
 import asyncio
 import sys

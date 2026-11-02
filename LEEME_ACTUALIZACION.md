@@ -1,4 +1,4 @@
-# Actualización: Prototipo 2 — Alertas y diagnóstico
+# Actualización: Prototipo 8 — Alertas y diagnóstico
 
 Descomprime el zip **encima de la raíz del repositorio** (conserva las rutas) y reemplaza los archivos.
 
@@ -35,6 +35,6 @@ npm run dev
 git status
 git rm docs/DEVELOPMENT_PLAN_actualizado.md   # solo si todavía existe
 git add backend frontend docs README.md REGLAS_ESTACION_TERRENA.md
-git commit -m "Prototipo 2: alertas y diagnóstico (señal débil, pérdida de enlace, datos inválidos, errores seriales)"
+git commit -m "Prototipo 8: alertas y diagnóstico (señal débil, pérdida de enlace, datos inválidos, errores seriales)"
 git push
 ```

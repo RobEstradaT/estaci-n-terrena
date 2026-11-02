@@ -1,4 +1,4 @@
-/* Panel de misiones (Incremento 6). Usa los tokens de index.css. */
+/* Panel de misiones (Prototipo 6). Usa los tokens de index.css. */
 
 .mission-panel {
   background: var(--bg-panel);
@@ -146,7 +146,7 @@
   }
 }
 
-/* ---------- Acciones de cada misión (Prototipo 1) ---------- */
+/* ---------- Acciones de cada misión (Prototipo 7) ---------- */
 
 .mission-list__actions {
   display: flex;
@@ -179,7 +179,7 @@
   outline-offset: 2px;
 }
 
-/* ---------- Exportación CSV / JSON (Incremento 6) ---------- */
+/* ---------- Exportación CSV / JSON (Prototipo 6) ---------- */
 
 .mission-list__exports {
   display: flex;

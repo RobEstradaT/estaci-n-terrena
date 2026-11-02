@@ -1,5 +1,5 @@
 """
-Persistencia en SQLite (Incremento 6; análisis histórico en el Prototipo 1).
+Persistencia en SQLite (Prototipo 6; análisis histórico en el Prototipo 7).
 
 Responsabilidad: guardar misiones y lecturas de telemetría ya procesadas
 (el `dict` que produce `ProcessedTelemetry.to_dict()`), devolverlas cuando
@@ -297,7 +297,7 @@ class Database:
         return [dict(r) for r in rows]
 
     # ------------------------------------------------------------------
-    # Análisis histórico (Prototipo 1)
+    # Análisis histórico (Prototipo 7)
     # ------------------------------------------------------------------
 
     def mission_stats(self, mission_id: int) -> dict:

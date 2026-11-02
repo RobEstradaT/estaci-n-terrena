@@ -2,10 +2,10 @@
 Backend de la Estación Terrena CanSat.
 
 Módulos cubiertos:
-- Desarrollo previo: fuente simulada o serial, WebSocket, misiones y CSV
-  (Incrementos 1, 2, 5 y 6).
-- Prototipo 1: análisis histórico por misión (serie para gráficas y estadísticas).
-- Prototipo 2: alertas y diagnóstico (señal débil, pérdida de enlace, datos
+- Prototipos 1, 2, 5 y 6: fuente simulada o serial, WebSocket, misiones y
+  exportación CSV y JSON.
+- Prototipo 7: análisis histórico por misión (serie para gráficas y estadísticas).
+- Prototipo 8: alertas y diagnóstico (señal débil, pérdida de enlace, datos
   inválidos, errores seriales); ver app/alerts.py y docs/ALERTS.md.
 
 Ejecutar con:
@@ -158,7 +158,7 @@ async def telemetry_loop() -> None:
             latest_reading = processed.to_dict()
             latest_reading["source_connected"] = source.is_connected()
 
-            # Prototipo 2: cada lectura válida de formato alimenta las alertas.
+            # Prototipo 8: cada lectura válida de formato alimenta las alertas.
             alert_engine.on_reading(latest_reading, time.monotonic())
 
             if manager.client_count > 0:
@@ -186,7 +186,7 @@ async def telemetry_loop() -> None:
 
 async def alerts_loop() -> None:
     """
-    Tarea de fondo (Prototipo 2): cada `ALERT_TICK_S` evalúa las alertas que
+    Tarea de fondo (Prototipo 8): cada `ALERT_TICK_S` evalúa las alertas que
     no dependen de que llegue una lectura (pérdida de enlace, puerto serial,
     tramas descartadas) y difunde el estado a los clientes conectados.
     Un fallo aquí se registra y no afecta a la telemetría en vivo.
@@ -254,7 +254,7 @@ async def get_latest_telemetry():
 
 
 # ---------------------------------------------------------------------------
-# Alertas y diagnóstico (Prototipo 2)
+# Alertas y diagnóstico (Prototipo 8)
 # ---------------------------------------------------------------------------
 
 
@@ -269,7 +269,7 @@ async def get_alerts_config():
 
 
 # ---------------------------------------------------------------------------
-# Misiones (Incremento 6)
+# Misiones (Prototipo 6)
 # ---------------------------------------------------------------------------
 
 
@@ -342,7 +342,7 @@ async def export_mission_json(mission_id: int):
 
 
 # ---------------------------------------------------------------------------
-# Análisis histórico (Prototipo 1)
+# Análisis histórico (Prototipo 7)
 # ---------------------------------------------------------------------------
 
 

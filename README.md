@@ -11,21 +11,17 @@ CanSat → LoRa → receptor LoRa → ESP32 → UART/USB → backend Python
 
 ## Estado
 
-| Desarrollo previo (incrementos) | Estado |
+| Prototipo | Estado |
 |---|---|
-| 0 Preparación | Completado |
-| 1 Simulador + procesamiento | Completado |
+| 1 Fuente simulada y procesamiento | Completado |
 | 2 FastAPI + WebSocket | Completado |
 | 3 Dashboard | Completado |
 | 4 Gráficas en vivo | Completado |
 | 5 UART real (`SerialESP32`) | Implementado; falta la prueba con el ESP32 físico |
 | 6 Persistencia en SQLite + exportación CSV y JSON | Completado |
-
-| Prototipos | Estado |
-|---|---|
-| 1 Análisis histórico | Implementado; pendiente de evaluación |
-| 2 Alertas y diagnóstico | Pendiente |
-| 3 Pruebas finales y refinamiento | Pendiente |
+| 7 Análisis histórico | Implementado; pendiente de evaluación |
+| 8 Alertas y diagnóstico | Implementado; pendiente de evaluación |
+| 9 Pruebas finales y refinamiento | Pendiente |
 
 El avance y los criterios de evaluación están en `docs/DEVELOPMENT_PLAN.md`.
 
@@ -149,7 +145,7 @@ Abre `http://localhost:5173`.
 
 - `http://localhost:8000/api/status` debe mostrar `"source_type": "SerialESP32"` y `"source_connected": true`.
 - En el dashboard, el contador **Paquetes** debe subir con cada trama recibida.
-- **Ojo:** el indicador "ENLACE ACTIVO" del encabezado solo dice que el navegador está conectado al backend. **No** indica que el CanSat esté transmitiendo. La alerta de pérdida de señal está prevista en el Prototipo 2.
+- **Ojo:** el indicador "ENLACE ACTIVO" del encabezado solo dice que el navegador está conectado al backend. **No** indica que el CanSat esté transmitiendo. La pérdida de señal del CanSat se indica con el indicador "TRAMAS" del encabezado y en el panel de alertas (Prototipo 8).
 
 ### 8. Graba una misión
 
@@ -159,7 +155,7 @@ Sin misión activa, los datos se ven pero **no se guardan**.
 2. El contador de muestras sube mientras graba.
 3. Tras el aterrizaje pulsa **Finalizar misión**.
 4. **Exportar CSV** o **JSON** descarga los datos (el CSV tiene BOM UTF-8 y abre bien en Excel).
-5. **Analizar** muestra duración, estadísticas por variable y gráficas de la misión (Prototipo 1).
+5. **Analizar** muestra duración, estadísticas por variable y gráficas de la misión (Prototipo 7).
 
 Los datos quedan en `backend/data/cansat.db`. Cópialo como respaldo después de cada prueba importante.
 
@@ -216,7 +212,7 @@ Las pruebas están en `backend/tests/`: `test_parse_frame.py` (parser UART), `te
 - **Tipo y precisión** de cada campo: se aceptan como `float`.
 - **Reloj "T. de misión" en vivo:** usa el tiempo de la fuente; el análisis histórico usa el tiempo relativo a la misión, así que el cero no coincide entre ambas vistas.
 - **Fase de misión** (ASCENSO, DESCENSO...): se infiere en el frontend; el CanSat no la transmite.
-- **Pérdida de enlace y alertas dedicadas:** Prototipo 2.
+- **Umbrales de alertas:** provisionales hasta confirmar los parámetros LoRa y la frecuencia de transmisión (ver `docs/ALERTS.md`).
 
 ## Estructura
 
